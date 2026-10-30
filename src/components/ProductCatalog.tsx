@@ -64,17 +64,12 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
     return products.filter((p) => {
       const matchesCategory = selectedCategory === 'Todas' || p.category === selectedCategory;
-      if (!query) return matchesCategory;
-
-      // Real-time matching primarily by service name, with category/description support
-      const matchesName = p.name.toLowerCase().includes(query);
-      const matchesCategoryName = p.category.toLowerCase().includes(query);
-      const matchesDescription = p.description.toLowerCase().includes(query);
-
-      return matchesCategory && (matchesName || matchesCategoryName || matchesDescription);
+      const matchesSearch =
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
     });
   }, [products, selectedCategory, searchQuery]);
 
@@ -162,7 +157,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       )}
 
       {/* Title & Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 pb-4 border-b border-pink-100">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 pb-4 border-b border-pink-100">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" /> Catálogo Exclusivo B & K
@@ -175,81 +170,23 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </p>
         </div>
 
-        {/* Live Counter Badge */}
-        <div className="flex items-center gap-2 text-xs text-stone-600 bg-stone-50 border border-stone-200 px-3.5 py-1.5 rounded-full shrink-0">
-          <span>Catálogo: <b>{products.length}</b> modelos</span>
-          <span className="text-stone-300">|</span>
-          <span className="text-pink-600 font-bold">{filteredProducts.length} exibidos</span>
-        </div>
-      </div>
-
-      {/* Campo de Busca por Nome em Tempo Real */}
-      <div className="bg-white rounded-2xl border border-pink-100 p-3 sm:p-4 mb-6 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="relative flex-1">
-            <label htmlFor="product-name-search" className="sr-only">
-              Buscar serviço por nome
-            </label>
-            <Search className="w-4 h-4 text-pink-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              id="product-name-search"
-              type="text"
-              placeholder="Buscar serviço por nome em tempo real (ex: Francesinha, Mármore, Floral, 3D...)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white focus:ring-2 focus:ring-pink-500/20 outline-hidden transition-colors placeholder:text-stone-400 font-medium text-stone-900"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 flex items-center justify-center text-xs transition-colors"
-                title="Limpar busca"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
+        {/* Search Input */}
+        <div className="relative w-full md:w-72">
+          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar modelo ou estilo..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-hidden transition-all placeholder:text-stone-400"
+          />
           {searchQuery && (
-            <div className="flex items-center gap-2 text-xs text-stone-600 shrink-0">
-              <span className="bg-pink-50 text-pink-700 font-semibold px-2.5 py-1 rounded-lg border border-pink-200">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'resultado' : 'resultados'}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="text-stone-500 hover:text-pink-600 text-xs font-semibold underline underline-offset-2"
-              >
-                Limpar busca
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Sugestões rápidas de busca por nome */}
-        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-stone-100 flex-wrap text-xs">
-          <span className="text-[11px] font-semibold text-stone-500 mr-1">
-            Filtro rápido por nome:
-          </span>
-          {['Encapsulada', 'Francesinha', 'Mármore', 'Degradê', 'Floral', 'Cromado', 'Animal Print', '3D', 'Metalizada'].map(
-            (tag) => {
-              const isCurrent = searchQuery.toLowerCase() === tag.toLowerCase();
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setSearchQuery(isCurrent ? '' : tag)}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg transition-all ${
-                    isCurrent
-                      ? 'bg-pink-600 text-white font-bold shadow-2xs'
-                      : 'bg-stone-100 hover:bg-pink-50 hover:text-pink-600 text-stone-700 font-medium'
-                  }`}
-                >
-                  {tag}
-                </button>
-              );
-            }
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-700"
+            >
+              ✕
+            </button>
           )}
         </div>
       </div>
@@ -311,7 +248,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   <img
                     src={service.imageUrl}
                     alt={service.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =

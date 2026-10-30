@@ -1376,7 +1376,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <img
                       src={p.imageUrl}
                       alt={p.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-stone-950/80 text-white text-[10px] font-bold">
