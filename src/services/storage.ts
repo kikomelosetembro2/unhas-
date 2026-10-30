@@ -18,7 +18,7 @@ import {
 
 const PRODUCTS_KEY = 'bk_nails_products_v1';
 const BOOKINGS_KEY = 'bk_nails_bookings_v1';
-const SALON_KEY = 'bk_nails_salon_v2';
+const SALON_KEY = 'bk_nails_salon_v1';
 const LOYALTY_KEY = 'bk_nails_loyalty_v1';
 const REVIEWS_KEY = 'bk_nails_reviews_v1';
 const TESTIMONIALS_KEY = 'bk_nails_testimonials_v1';
@@ -298,12 +298,6 @@ export const StorageService = {
         return SALON_DATA;
       }
       const parsed = JSON.parse(data);
-      // Migrate legacy number if present
-      if (parsed.bookingWhatsapp === '(68) 99282-7744' || parsed.rawWhatsappNumber === '5568992827744') {
-        parsed.bookingWhatsapp = '(68) 98118-0360';
-        parsed.rawWhatsappNumber = '5568981180360';
-        parsed.pixKey = '68981180360';
-      }
       return {
         ...SALON_DATA,
         ...parsed,
@@ -587,7 +581,7 @@ export const StorageService = {
 
     msg += `\n--------------------------------------\n`;
     msg += `📍 *Ateliê:* Rio Branco - Acre\n`;
-    msg += `📲 *WhatsApp de Agendamentos:* (68) 98118-0360\n`;
+    msg += `📲 *WhatsApp de Agendamentos:* (68) 99282-7744\n`;
     msg += `✅ _Comprovante enviado automaticamente para confirmação da designer._`;
 
     return msg;

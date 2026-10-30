@@ -328,7 +328,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  // WhatsApp to Salon (Comprovante Oficial para (68) 98118-0360)
+  // WhatsApp to Salon (Comprovante Oficial para 68 99282-7744)
   const handleForwardToSalonWhatsApp = (booking: Booking) => {
     const msg = StorageService.generateWhatsAppMessage({
       id: booking.id,
@@ -344,10 +344,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       changeAmount: booking.changeAmount,
       notes: booking.notes,
     });
-    const salonNumber = salon.rawWhatsappNumber || '5568981180360';
-    const url = StorageService.buildWhatsAppLink(salonNumber, msg);
+    const url = StorageService.buildWhatsAppLink('5568992827744', msg);
     window.open(url, '_blank');
-    showToast(`Comprovante aberto para envio ao WhatsApp ${salon.bookingWhatsapp || '(68) 98118-0360'}!`);
+    showToast('Comprovante aberto para envio ao WhatsApp (68) 99282-7744!');
   };
 
   // WhatsApp to Client
@@ -574,9 +573,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleSendLoyaltyWhatsApp = (client: LoyaltyClient) => {
     const clean = client.phone.startsWith('55') ? client.phone : `55${client.phone}`;
     let text = '';
-    const salonPhoneDisplay = salon.bookingWhatsapp || '(68) 98118-0360';
     if (client.points >= 5) {
-      text = `🎉 Parabéns, ${client.name}! Você completou *5 atendimentos* no *B & K NAILS DESIGNER* e seu *Cartão Fidelidade* está com a recompensa liberada! Agende seu horário pelo WhatsApp ${salonPhoneDisplay} e venha resgatar seu prêmio de cortesia! 💅✨`;
+      text = `🎉 Parabéns, ${client.name}! Você completou *5 atendimentos* no *B & K NAILS DESIGNER* e seu *Cartão Fidelidade* está com a recompensa liberada! Agende seu horário pelo WhatsApp (68) 99282-7744 e venha resgatar seu prêmio de cortesia! 💅✨`;
     } else {
       text = `Olá, ${client.name}! Seu saldo no *Cartão Fidelidade B & K Nails* é de *${client.points}/5 pontos*. Faltam apenas *${5 - client.points} atendimento(s)* para você ganhar sua recompensa exclusiva! Te esperamos em breve em Rio Branco. 💖`;
     }
@@ -585,15 +583,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanDigits = settingsForm.bookingWhatsapp.replace(/\D/g, '');
-    const updatedInfo: SalonInfo = {
-      ...settingsForm,
-      rawWhatsappNumber: cleanDigits.startsWith('55') ? cleanDigits : `55${cleanDigits}`,
-      pixKey: settingsForm.pixKey || cleanDigits,
-    };
-    StorageService.saveSalonInfo(updatedInfo);
-    onUpdateSalon(updatedInfo);
-    setSettingsForm(updatedInfo);
+    StorageService.saveSalonInfo(settingsForm);
+    onUpdateSalon(settingsForm);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2500);
     showToast('Configurações salvas!');
@@ -1670,7 +1661,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               type="button"
                               onClick={() => handleForwardToSalonWhatsApp(b)}
                               className="p-1.5 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-600 hover:text-white transition-colors"
-                              title={`Reencaminhar para o WhatsApp do Salão (${salon.bookingWhatsapp || '(68) 98118-0360'})`}
+                              title="Reencaminhar para o WhatsApp do Salão (68) 99282-7744"
                             >
                               <Share2 className="w-4 h-4" />
                             </button>
@@ -1883,7 +1874,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono font-semibold"
                   />
                   <span className="text-[11px] text-stone-400 mt-1 block">
-                    Padrão oficial cadastrado: (68) 98118-0360 (5568981180360)
+                    Padrão oficial cadastrado: (68) 99282-7744 (5568992827744)
                   </span>
                 </div>
 

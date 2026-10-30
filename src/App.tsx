@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProductCatalog } from './components/ProductCatalog';
@@ -39,11 +38,6 @@ export default function App() {
     setSalon(loadedSalon);
   }, []);
 
-  // Smooth scroll to top on tab change
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [activeTab]);
-
   const handleOpenBooking = (service?: NailService) => {
     if (service) {
       setSelectedService(service);
@@ -61,33 +55,6 @@ export default function App() {
   };
 
   const pendingBookingsCount = bookings.filter((b) => b.status === 'Pendente').length;
-
-  // Animation configuration for tab transitions
-  const tabVariants: Variants = {
-    initial: {
-      opacity: 0,
-      y: 14,
-      filter: 'blur(4px)',
-    },
-    animate: {
-      opacity: 1,
-      y: 0,
-      filter: 'blur(0px)',
-      transition: {
-        duration: 0.3,
-        ease: 'easeOut',
-      },
-    },
-    exit: {
-      opacity: 0,
-      y: -12,
-      filter: 'blur(4px)',
-      transition: {
-        duration: 0.2,
-        ease: 'easeInOut',
-      },
-    },
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-black selection:bg-pink-200">
@@ -122,122 +89,86 @@ export default function App() {
           setIsMobilePreview={setIsMobilePreview}
         />
 
-        {/* Dynamic Views with Smooth Tab Transitions */}
-        <main className="flex-1 overflow-x-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            {activeTab === 'catalog' && (
-              <motion.div
-                key="tab-catalog"
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="w-full"
-              >
-                <Hero
-                  salon={salon}
-                  onOpenBooking={() => handleOpenBooking()}
-                  onExploreCatalog={() => {
-                    const el = document.getElementById('catalogo');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                />
+        {/* Dynamic Views */}
+        <main className="flex-1">
+          {activeTab === 'catalog' && (
+            <>
+              <Hero
+                salon={salon}
+                onOpenBooking={() => handleOpenBooking()}
+                onExploreCatalog={() => {
+                  const el = document.getElementById('catalogo');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
 
-                <ProductCatalog
-                  products={products}
-                  onSelectService={(serv) => {
-                    setSelectedService(serv);
-                    setIsBookingOpen(true);
-                  }}
-                  onOpenBooking={() => handleOpenBooking()}
-                />
+              <ProductCatalog
+                products={products}
+                onSelectService={(serv) => {
+                  setSelectedService(serv);
+                  setIsBookingOpen(true);
+                }}
+                onOpenBooking={() => handleOpenBooking()}
+              />
 
-                {/* VIP Loyalty Banner at the bottom of the catalog */}
-                <section className="max-w-7xl mx-auto px-4 sm:px-8 pb-12">
-                  <div className="bg-gradient-to-r from-stone-950 via-stone-900 to-black text-white rounded-3xl p-6 sm:p-8 border border-pink-500/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-pink-600/20 border border-pink-500/50 flex items-center justify-center shrink-0">
-                        <Award className="w-7 h-7 text-pink-400" />
-                      </div>
-                      <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-pink-400 block">
-                          Programa de Fidelidade Exclusivo
-                        </span>
-                        <h3 className="font-serif text-xl sm:text-2xl font-bold text-white">
-                          Já tem agendamentos conosco? Consulte seus pontos!
-                        </h3>
-                        <p className="text-xs text-stone-400 mt-1 max-w-xl">
-                          A cada 5 atendimentos de unhas artesanais, você ganha uma recompensa de cortesia. Digite seu WhatsApp e acompanhe seus selos acumulados.
-                        </p>
-                      </div>
+              {/* VIP Loyalty Banner at the bottom of the catalog */}
+              <section className="max-w-7xl mx-auto px-4 sm:px-8 pb-12">
+                <div className="bg-gradient-to-r from-stone-950 via-stone-900 to-black text-white rounded-3xl p-6 sm:p-8 border border-pink-500/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-pink-600/20 border border-pink-500/50 flex items-center justify-center shrink-0">
+                      <Award className="w-7 h-7 text-pink-400" />
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('loyalty')}
-                      className="px-6 py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs sm:text-sm font-bold shadow-md hover:scale-105 transition-all shrink-0 flex items-center gap-2"
-                    >
-                      <Award className="w-4 h-4" />
-                      <span>Acessar Meu Cartão VIP</span>
-                    </button>
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-pink-400 block">
+                        Programa de Fidelidade Exclusivo
+                      </span>
+                      <h3 className="font-serif text-xl sm:text-2xl font-bold text-white">
+                        Já tem agendamentos conosco? Consulte seus pontos!
+                      </h3>
+                      <p className="text-xs text-stone-400 mt-1 max-w-xl">
+                        A cada 5 atendimentos de unhas artesanais, você ganha uma recompensa de cortesia. Digite seu WhatsApp e acompanhe seus selos acumulados.
+                      </p>
+                    </div>
                   </div>
-                </section>
-              </motion.div>
-            )}
 
-            {activeTab === 'loyalty' && (
-              <motion.div
-                key="tab-loyalty"
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="w-full"
-              >
-                <LoyaltyDashboard
-                  salon={salon}
-                  onOpenBooking={() => handleOpenBooking()}
-                />
-              </motion.div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('loyalty')}
+                    className="px-6 py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs sm:text-sm font-bold shadow-md hover:scale-105 transition-all shrink-0 flex items-center gap-2"
+                  >
+                    <Award className="w-4 h-4" />
+                    <span>Acessar Meu Cartão VIP</span>
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
 
-            {activeTab === 'about' && (
-              <motion.div
-                key="tab-about"
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="w-full"
-              >
-                <AboutSalon
-                  salon={salon}
-                  onOpenBooking={() => handleOpenBooking()}
-                />
-              </motion.div>
-            )}
+          {activeTab === 'loyalty' && (
+            <LoyaltyDashboard
+              salon={salon}
+              onOpenBooking={() => handleOpenBooking()}
+            />
+          )}
 
-            {activeTab === 'admin' && (
-              <motion.div
-                key="tab-admin"
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="w-full"
-              >
-                <AdminPanel
-                  products={products}
-                  onUpdateProducts={setProducts}
-                  bookings={bookings}
-                  onUpdateBookings={setBookings}
-                  salon={salon}
-                  onUpdateSalon={setSalon}
-                  onCloseAdmin={() => setActiveTab('catalog')}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {activeTab === 'about' && (
+            <AboutSalon
+              salon={salon}
+              onOpenBooking={() => handleOpenBooking()}
+            />
+          )}
+
+          {activeTab === 'admin' && (
+            <AdminPanel
+              products={products}
+              onUpdateProducts={setProducts}
+              bookings={bookings}
+              onUpdateBookings={setBookings}
+              salon={salon}
+              onUpdateSalon={setSalon}
+              onCloseAdmin={() => setActiveTab('catalog')}
+            />
+          )}
         </main>
 
         {/* Global Footer */}

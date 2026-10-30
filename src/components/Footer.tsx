@@ -47,12 +47,14 @@ export const Footer: React.FC<FooterProps> = ({ salon, onOpenBooking, onOpenAdmi
                 <MessageCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <span>WhatsApp Agendamentos: <b>{salon.bookingWhatsapp}</b></span>
               </a>
-              {salon.phones.filter(p => p && p !== salon.bookingWhatsapp).map((phone, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-stone-400">
-                  <Phone className="w-3.5 h-3.5 text-pink-500 shrink-0" />
-                  <span>Telefone Alternativo: {phone}</span>
-                </div>
-              ))}
+              <div className="flex items-center gap-2 text-stone-400">
+                <Phone className="w-3.5 h-3.5 text-pink-500 shrink-0" />
+                <span>{salon.phones[0]}</span>
+              </div>
+              <div className="flex items-center gap-2 text-stone-400">
+                <Phone className="w-3.5 h-3.5 text-pink-500 shrink-0" />
+                <span>{salon.phones[1]}</span>
+              </div>
             </div>
           </div>
 
