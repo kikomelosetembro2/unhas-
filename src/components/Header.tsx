@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Sparkles, Calendar, ShieldCheck, Smartphone, Monitor, MessageCircle, Phone, Award } from 'lucide-react';
 import { SalonInfo } from '../types';
 
@@ -32,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             <span className="hidden sm:inline text-stone-600">|</span>
             <span className="hidden sm:inline truncate">
-              Atendimento: {salon.bookingWhatsapp} · {salon.phones[0]}
+              WhatsApp: {salon.bookingWhatsapp} {salon.phones[1] && salon.phones[1] !== salon.bookingWhatsapp ? `· ${salon.phones[1]}` : ''}
             </span>
           </div>
 
@@ -96,34 +97,55 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className="hidden lg:flex items-center gap-7 text-sm font-medium">
           <button
             onClick={() => setActiveTab('catalog')}
-            className={`transition-colors pb-1 border-b-2 ${
+            className={`relative py-1.5 transition-colors ${
               activeTab === 'catalog'
-                ? 'text-pink-600 border-pink-600 font-semibold'
-                : 'text-stone-700 border-transparent hover:text-pink-600'
+                ? 'text-pink-600 font-semibold'
+                : 'text-stone-700 hover:text-pink-600'
             }`}
           >
-            Catálogo de Artes
+            <span>Catálogo de Artes</span>
+            {activeTab === 'catalog' && (
+              <motion.div
+                layoutId="header-active-indicator"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 rounded-full"
+                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              />
+            )}
           </button>
           <button
             onClick={() => setActiveTab('about')}
-            className={`transition-colors pb-1 border-b-2 ${
+            className={`relative py-1.5 transition-colors ${
               activeTab === 'about'
-                ? 'text-pink-600 border-pink-600 font-semibold'
-                : 'text-stone-700 border-transparent hover:text-pink-600'
+                ? 'text-pink-600 font-semibold'
+                : 'text-stone-700 hover:text-pink-600'
             }`}
           >
-            Sobre o Ateliê
+            <span>Sobre o Ateliê</span>
+            {activeTab === 'about' && (
+              <motion.div
+                layoutId="header-active-indicator"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 rounded-full"
+                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              />
+            )}
           </button>
           <button
             onClick={() => setActiveTab('loyalty')}
-            className={`transition-colors pb-1 border-b-2 flex items-center gap-1 ${
+            className={`relative py-1.5 transition-colors flex items-center gap-1.5 ${
               activeTab === 'loyalty'
-                ? 'text-pink-600 border-pink-600 font-semibold'
-                : 'text-stone-700 border-transparent hover:text-pink-600'
+                ? 'text-pink-600 font-semibold'
+                : 'text-stone-700 hover:text-pink-600'
             }`}
           >
             <Award className="w-3.5 h-3.5 text-pink-500" />
             <span>Cartão Fidelidade</span>
+            {activeTab === 'loyalty' && (
+              <motion.div
+                layoutId="header-active-indicator"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 rounded-full"
+                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              />
+            )}
           </button>
           <a
             href={`https://wa.me/${salon.rawWhatsappNumber}?text=${encodeURIComponent('Olá! Gostaria de tirar dúvidas sobre as pinturas artesanais da B & K Nails.')}`}

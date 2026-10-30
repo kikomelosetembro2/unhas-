@@ -1,3 +1,4 @@
+import React, { useRef, useEffect } from 'react';
 import {
   Smartphone,
   Monitor,
@@ -31,6 +32,15 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({
   whatsappNumber,
   children,
 }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top of mobile viewport whenever tab changes
+  useEffect(() => {
+    if (isMobilePreview && scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab, isMobilePreview]);
+
   if (!isMobilePreview) {
     return <>{children}</>;
   }
@@ -76,7 +86,7 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({
           </div>
 
           {/* Mobile Scrollable Canvas */}
-          <div className="flex-1 overflow-y-auto no-scrollbar relative pb-20">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar relative pb-20">
             {children}
           </div>
 

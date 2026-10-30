@@ -16,9 +16,9 @@ import {
   DEFAULT_REMINDER_TEMPLATE,
 } from '../data/initialProducts';
 
-const PRODUCTS_KEY = 'bk_nails_products_v1';
+const PRODUCTS_KEY = 'bk_nails_products_v2';
 const BOOKINGS_KEY = 'bk_nails_bookings_v1';
-const SALON_KEY = 'bk_nails_salon_v1';
+const SALON_KEY = 'bk_nails_salon_v2';
 const LOYALTY_KEY = 'bk_nails_loyalty_v1';
 const REVIEWS_KEY = 'bk_nails_reviews_v1';
 const TESTIMONIALS_KEY = 'bk_nails_testimonials_v1';
@@ -224,7 +224,22 @@ export const StorageService = {
         localStorage.setItem(PRODUCTS_KEY, JSON.stringify(INITIAL_PRODUCTS));
         return INITIAL_PRODUCTS;
       }
-      return JSON.parse(data);
+      const list: NailService[] = JSON.parse(data);
+      const initialMap = new Map(INITIAL_PRODUCTS.map((p) => [p.id, p]));
+      return list.map((item) => {
+        const defaultItem = initialMap.get(item.id);
+        if (
+          defaultItem &&
+          (!item.imageUrl ||
+            item.imageUrl === '/src/assets/images/hero_bk_nails_1793339141928.jpg' ||
+            (item.imageUrl.includes('nail_reverse_french') && defaultItem.id !== 'prod-2') ||
+            (item.imageUrl.includes('nail_encapsulated_flowers') && defaultItem.id !== 'prod-1') ||
+            (item.imageUrl.includes('nail_floral_freehand') && defaultItem.id !== 'prod-5'))
+        ) {
+          return { ...item, imageUrl: defaultItem.imageUrl };
+        }
+        return item;
+      });
     } catch {
       return INITIAL_PRODUCTS;
     }
@@ -298,6 +313,12 @@ export const StorageService = {
         return SALON_DATA;
       }
       const parsed = JSON.parse(data);
+      // Migrate legacy number if present
+      if (parsed.bookingWhatsapp === '(68) 99282-7744' || parsed.rawWhatsappNumber === '5568992827744') {
+        parsed.bookingWhatsapp = '(68) 98118-0360';
+        parsed.rawWhatsappNumber = '5568981180360';
+        parsed.pixKey = '68981180360';
+      }
       return {
         ...SALON_DATA,
         ...parsed,
@@ -581,7 +602,7 @@ export const StorageService = {
 
     msg += `\n--------------------------------------\n`;
     msg += `📍 *Ateliê:* Rio Branco - Acre\n`;
-    msg += `📲 *WhatsApp de Agendamentos:* (68) 99282-7744\n`;
+    msg += `📲 *WhatsApp de Agendamentos:* (68) 98118-0360\n`;
     msg += `✅ _Comprovante enviado automaticamente para confirmação da designer._`;
 
     return msg;

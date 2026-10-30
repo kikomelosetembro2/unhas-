@@ -128,7 +128,7 @@ export const Hero: React.FC<HeroProps> = ({ salon, onOpenBooking, onExploreCatal
                   Design & Arte em Unhas
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-200 mt-2 max-w-md leading-relaxed">
-                  Agendamento rápido para o WhatsApp <b>(68) 99282-7744</b> com confirmação automática e cálculo de troco para dinheiro.
+                  Agendamento rápido para o WhatsApp <b>{salon.bookingWhatsapp}</b> com confirmação automática e cálculo de troco para dinheiro.
                 </p>
               </div>
             </div>
