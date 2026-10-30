@@ -1,10 +1,28 @@
-import { NailService, Booking, SalonInfo, LoyaltyClient } from '../types';
-import { INITIAL_PRODUCTS, SALON_DATA } from '../data/initialProducts';
+import {
+  NailService,
+  Booking,
+  SalonInfo,
+  LoyaltyClient,
+  ProductReview,
+  Testimonial,
+  FinancialRecord,
+  FinancialOperationType,
+} from '../types';
+import {
+  INITIAL_PRODUCTS,
+  SALON_DATA,
+  INITIAL_REVIEWS,
+  INITIAL_TESTIMONIALS,
+  DEFAULT_REMINDER_TEMPLATE,
+} from '../data/initialProducts';
 
 const PRODUCTS_KEY = 'bk_nails_products_v1';
 const BOOKINGS_KEY = 'bk_nails_bookings_v1';
 const SALON_KEY = 'bk_nails_salon_v1';
 const LOYALTY_KEY = 'bk_nails_loyalty_v1';
+const REVIEWS_KEY = 'bk_nails_reviews_v1';
+const TESTIMONIALS_KEY = 'bk_nails_testimonials_v1';
+const FINANCIAL_KEY = 'bk_nails_financial_v1';
 
 const INITIAL_SAMPLE_BOOKINGS: Booking[] = [
   {
@@ -279,7 +297,14 @@ export const StorageService = {
         localStorage.setItem(SALON_KEY, JSON.stringify(SALON_DATA));
         return SALON_DATA;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      return {
+        ...SALON_DATA,
+        ...parsed,
+        autoReminderEnabled: parsed.autoReminderEnabled !== undefined ? parsed.autoReminderEnabled : true,
+        reminderTemplate: parsed.reminderTemplate || DEFAULT_REMINDER_TEMPLATE,
+        reminderHoursBefore: parsed.reminderHoursBefore || 24,
+      };
     } catch {
       return SALON_DATA;
     }
@@ -586,5 +611,221 @@ export const StorageService = {
     }
     const encoded = encodeURIComponent(text);
     return `https://wa.me/${cleanPhone}?text=${encoded}`;
-  }
+  },
+
+  // -------------------------------------------------------------
+  // IDENTIFICAÇÃO DO CLIENTE PELO TELEFONE / WHATSAPP
+  // -------------------------------------------------------------
+  findClientByPhone(phone: string): { name: string; points?: number; bookingsCount: number } | null {
+    const cleanDigits = phone.replace(/\D/g, '');
+    if (cleanDigits.length < 8) return null;
+
+    // Check loyalty clients first
+    const loyalty = this.getLoyaltyByPhone(cleanDigits);
+    if (loyalty && loyalty.name) {
+      return {
+        name: loyalty.name,
+        points: loyalty.points,
+        bookingsCount: loyalty.totalCompletedAppointments,
+      };
+    }
+
+    // Check bookings history
+    const bookings = this.getBookings();
+    const found = bookings.find((b) => {
+      const bDigits = b.clientPhone.replace(/\D/g, '');
+      return bDigits.includes(cleanDigits) || cleanDigits.includes(bDigits);
+    });
+
+    if (found && found.clientName) {
+      const count = bookings.filter((b) => {
+        const bDigits = b.clientPhone.replace(/\D/g, '');
+        return bDigits.includes(cleanDigits) || cleanDigits.includes(bDigits);
+      }).length;
+
+      return {
+        name: found.clientName,
+        bookingsCount: count,
+      };
+    }
+
+    return null;
+  },
+
+  // -------------------------------------------------------------
+  // AVALIAÇÕES (5 ESTRELAS) DOS PRODUTOS
+  // -------------------------------------------------------------
+  getReviews(): ProductReview[] {
+    try {
+      const data = localStorage.getItem(REVIEWS_KEY);
+      if (!data) {
+        localStorage.setItem(REVIEWS_KEY, JSON.stringify(INITIAL_REVIEWS));
+        return INITIAL_REVIEWS;
+      }
+      return JSON.parse(data);
+    } catch {
+      return INITIAL_REVIEWS;
+    }
+  },
+
+  saveReviews(reviews: ProductReview[]): void {
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
+  },
+
+  getProductReviews(serviceId: string): ProductReview[] {
+    const all = this.getReviews();
+    return all.filter((r) => r.serviceId === serviceId);
+  },
+
+  getProductRating(serviceId: string): { avg: number; count: number } {
+    const reviews = this.getProductReviews(serviceId);
+    if (reviews.length === 0) {
+      // Default high rating baseline for display if no user review yet
+      return { avg: 5.0, count: 0 };
+    }
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return {
+      avg: Number((sum / reviews.length).toFixed(1)),
+      count: reviews.length,
+    };
+  },
+
+  addReview(review: Omit<ProductReview, 'id' | 'date'>): ProductReview {
+    const current = this.getReviews();
+    const newRev: ProductReview = {
+      ...review,
+      id: `rev-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+    };
+    const updated = [newRev, ...current];
+    this.saveReviews(updated);
+    return newRev;
+  },
+
+  // -------------------------------------------------------------
+  // DEPOIMENTOS GERAIS DE CLIENTES
+  // -------------------------------------------------------------
+  getTestimonials(): Testimonial[] {
+    try {
+      const data = localStorage.getItem(TESTIMONIALS_KEY);
+      if (!data) {
+        localStorage.setItem(TESTIMONIALS_KEY, JSON.stringify(INITIAL_TESTIMONIALS));
+        return INITIAL_TESTIMONIALS;
+      }
+      return JSON.parse(data);
+    } catch {
+      return INITIAL_TESTIMONIALS;
+    }
+  },
+
+  saveTestimonials(testimonials: Testimonial[]): void {
+    localStorage.setItem(TESTIMONIALS_KEY, JSON.stringify(testimonials));
+  },
+
+  addTestimonial(testimonial: Omit<Testimonial, 'id' | 'date'>): Testimonial {
+    const current = this.getTestimonials();
+    const newTest: Testimonial = {
+      ...testimonial,
+      id: `test-${Date.now()}`,
+      date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+    };
+    const updated = [newTest, ...current];
+    this.saveTestimonials(updated);
+    return newTest;
+  },
+
+  // -------------------------------------------------------------
+  // LEMBRETES AUTOMÁTICOS WHATSAPP (24 HORAS ANTES)
+  // -------------------------------------------------------------
+  generateReminderMessage(booking: Booking, salon: SalonInfo): string {
+    const template = salon.reminderTemplate || DEFAULT_REMINDER_TEMPLATE;
+    const [year, month, day] = booking.date.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+    const formattedPrice = booking.servicePrice.toFixed(2).replace('.', ',');
+
+    return template
+      .replace(/{cliente}/g, booking.clientName.trim())
+      .replace(/{servico}/g, booking.serviceName)
+      .replace(/{data}/g, formattedDate)
+      .replace(/{horario}/g, booking.time)
+      .replace(/{valor}/g, formattedPrice)
+      .replace(/{salao}/g, salon.name)
+      .replace(/{endereco}/g, `${salon.city} - ${salon.state}`)
+      .replace(/{whatsapp}/g, salon.bookingWhatsapp);
+  },
+
+  getUpcomingBookingsForReminder(hoursWindow = 48): { booking: Booking; isTomorrow: boolean; isToday: boolean }[] {
+    const bookings = this.getBookings();
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    const tomorrow = new Date(Date.now() + 86400000);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    return bookings
+      .filter((b) => (b.status === 'Confirmado' || b.status === 'Pendente') && (b.date === tomorrowStr || b.date === todayStr))
+      .map((b) => ({
+        booking: b,
+        isTomorrow: b.date === tomorrowStr,
+        isToday: b.date === todayStr,
+      }));
+  },
+
+  // -------------------------------------------------------------
+  // REGISTROS FINANCEIROS (FLUXO DE CAIXA E VENDAS)
+  // -------------------------------------------------------------
+  getFinancialRecords(): FinancialRecord[] {
+    try {
+      const data = localStorage.getItem(FINANCIAL_KEY);
+      if (!data) return [];
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  },
+
+  saveFinancialRecords(records: FinancialRecord[]): void {
+    localStorage.setItem(FINANCIAL_KEY, JSON.stringify(records));
+  },
+
+  addFinancialRecord(record: Omit<FinancialRecord, 'id' | 'createdAt'>): FinancialRecord {
+    const records = this.getFinancialRecords();
+    const newRecord: FinancialRecord = {
+      ...record,
+      id: `fin-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newRecord, ...records];
+    this.saveFinancialRecords(updated);
+    return newRecord;
+  },
+
+  updateFinancialRecord(id: string, updates: Partial<FinancialRecord>): FinancialRecord[] {
+    const records = this.getFinancialRecords();
+    const updated = records.map((r) => (r.id === id ? { ...r, ...updates } : r));
+    this.saveFinancialRecords(updated);
+    return updated;
+  },
+
+  deleteFinancialRecord(id: string): FinancialRecord[] {
+    const records = this.getFinancialRecords();
+    const updated = records.filter((r) => r.id !== id);
+    this.saveFinancialRecords(updated);
+    return updated;
+  },
+
+  formatOperationType(type: FinancialOperationType | string): string {
+    switch (type) {
+      case 'recebimento_servico':
+        return 'Recebimento de Serviço';
+      case 'sinal_reserva':
+        return 'Sinal / Adiantamento';
+      case 'venda_produto':
+        return 'Venda de Produto / Cuidados';
+      case 'taxa_adicional':
+        return 'Taxa Adicional / Manutenção';
+      default:
+        return type;
+    }
+  },
 };

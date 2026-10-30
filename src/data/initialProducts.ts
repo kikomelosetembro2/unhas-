@@ -1,5 +1,12 @@
 import { NailService, SalonInfo } from '../types';
 
+export const DEFAULT_REMINDER_TEMPLATE = `Olá, {cliente}! ✨ Passando para lembrar do seu agendamento de *{servico}* amanhã, dia *{data} às {horario}*, no ateliê *{salao}*.
+
+📍 Local: {endereco}
+💰 Valor: R$ {valor}
+
+Caso precise reagendar ou tenha alguma dúvida, por favor nos avise por este WhatsApp. Estamos ansiosas para deixar suas unhas impecáveis! 💅💖`;
+
 export const SALON_DATA: SalonInfo = {
   name: 'B & K NAILS DESIGNER',
   niche: 'Exclusivamente Pinturas de Unhas Artesanais',
@@ -12,6 +19,9 @@ export const SALON_DATA: SalonInfo = {
   pixKey: '68992827744',
   pixReceiver: 'B & K Nails Designer',
   openingHours: 'Segunda a Sábado, das 08h00 às 18h30',
+  autoReminderEnabled: true,
+  reminderHoursBefore: 24,
+  reminderTemplate: DEFAULT_REMINDER_TEMPLATE,
 };
 
 export const INITIAL_PRODUCTS: NailService[] = [
@@ -128,5 +138,86 @@ export const INITIAL_PRODUCTS: NailService[] = [
     description: 'Linhas orgânicas fluidas em gel foil metalizado ouro e prata sobre base fosca ou brilhante, criando um visual vanguardista e contemporâneo.',
     imageUrl: '/src/assets/images/nail_reverse_french_1793339143817.jpg',
     available: true,
+  },
+];
+
+export const INITIAL_REVIEWS = [
+  {
+    id: 'rev-1',
+    serviceId: 'prod-1',
+    clientName: 'Juliana Medeiros',
+    rating: 5,
+    comment: 'As micro-flores secas são perfeitas! Duraram mais de 28 dias intactas. Todo mundo elogia!',
+    date: '2026-10-24',
+  },
+  {
+    id: 'rev-2',
+    serviceId: 'prod-1',
+    clientName: 'Camila Vasconcelos',
+    rating: 5,
+    comment: 'A técnica de encapsulado da Bárbara e Karla é incomparável em Rio Branco. Acabamento fino e impecável.',
+    date: '2026-10-20',
+  },
+  {
+    id: 'rev-3',
+    serviceId: 'prod-2',
+    clientName: 'Carla Beatriz Alencar',
+    rating: 5,
+    comment: 'A francesinha reversa com traço fino é de uma precisão surreal. Pincelada milimétrica!',
+    date: '2026-10-28',
+  },
+  {
+    id: 'rev-4',
+    serviceId: 'prod-5',
+    clientName: 'Fernanda Rocha',
+    rating: 5,
+    comment: 'Pintura floral feita à mão livre de verdade, sem adesivos. A arte parece uma aquarela nas unhas.',
+    date: '2026-10-25',
+  },
+  {
+    id: 'rev-5',
+    serviceId: 'prod-9',
+    clientName: 'Amanda Silveira',
+    rating: 5,
+    comment: 'O relevo 3D com as pedras não enrosca no cabelo e tem um brilho deslumbrante. Luxo puro!',
+    date: '2026-10-22',
+  },
+  {
+    id: 'rev-6',
+    serviceId: 'prod-3',
+    clientName: 'Renata Frota',
+    rating: 5,
+    comment: 'O mármore parece pedra natural de verdade. Vale cada centavo do investimento!',
+    date: '2026-10-18',
+  },
+];
+
+export const INITIAL_TESTIMONIALS = [
+  {
+    id: 'test-1',
+    clientName: 'Mariana Bezerra',
+    clientCity: 'Rio Branco - AC',
+    serviceName: 'Unha Encapsulada com Flores Secas',
+    rating: 5,
+    comment: 'Melhor salão de unhas artesanais do Acre! O atendimento é acolhedor, pontual e o resultado final supera qualquer expectativa. O comprovante chega direto no WhatsApp, super organizado!',
+    date: '28 de Outubro de 2026',
+  },
+  {
+    id: 'test-2',
+    clientName: 'Dra. Letícia Albuquerque',
+    clientCity: 'Rio Branco - AC',
+    serviceName: 'Francesinha Reversa Traços Finos',
+    rating: 5,
+    comment: 'Profissionais dedicadas e com técnica cirúrgica. Já fiz em outros lugares, mas a durabilidade e elegância das pinturas da B & K Nails Designer são imbatíveis.',
+    date: '25 de Outubro de 2026',
+  },
+  {
+    id: 'test-3',
+    clientName: 'Bruna Nogueira',
+    clientCity: 'Rio Branco - AC',
+    serviceName: 'Arte 3D em Relevo com Pedrarias',
+    rating: 5,
+    comment: 'Amei o cartão fidelidade de 5 pontos e o cálculo automático do troco em dinheiro! É um ateliê moderno que valoriza o tempo e o dinheiro da cliente.',
+    date: '22 de Outubro de 2026',
   },
 ];
