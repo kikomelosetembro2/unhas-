@@ -1,0 +1,6 @@
+{
+  "name": "B & K NAILS DESIGNER - Pinturas de Unhas Artesanais",
+  "description": "Aplicativo exclusivo de agendamento e catálogo para B & K NAILS DESIGNER em Rio Branco - AC. Pinturas de unhas artesanais, agendamento via WhatsApp, opções de pagamento e painel administrativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
