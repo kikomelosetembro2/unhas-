@@ -83,7 +83,7 @@ export interface SalonInfo {
   state: string;
   phones: string[];
   bookingWhatsapp: string;
-  rawWhatsappNumber: string; // 5568992827744
+  rawWhatsappNumber: string; // 5568981180360
   address: string;
   pixKey: string;
   pixReceiver: string;
@@ -103,7 +103,7 @@ export interface LoyaltyHistoryItem {
 
 export interface LoyaltyClient {
   id: string;
-  phone: string; // unmasked digits, e.g. 68992827744
+  phone: string; // unmasked digits, e.g. 68981180360
   formattedPhone: string;
   name: string;
   points: number; // 0 to 5
