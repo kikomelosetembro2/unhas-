@@ -37,7 +37,6 @@ import {
 } from 'lucide-react';
 import { NailService, Booking, SalonInfo, LoyaltyClient } from '../types';
 import { StorageService } from '../services/storage';
-import { DEFAULT_REMINDER_TEMPLATE } from '../data/initialProducts';
 
 interface AdminPanelProps {
   products: NailService[];
@@ -590,49 +589,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     showToast('Configurações salvas!');
   };
 
-  const handleResetReminderTemplate = () => {
-    setSettingsForm((prev) => ({
-      ...prev,
-      reminderTemplate: DEFAULT_REMINDER_TEMPLATE,
-    }));
-    showToast('Template restaurado para o padrão oficial!');
-  };
-
-  const insertReminderTag = (tag: string) => {
-    setSettingsForm((prev) => ({
-      ...prev,
-      reminderTemplate: (prev.reminderTemplate || DEFAULT_REMINDER_TEMPLATE) + ` ${tag}`,
-    }));
-  };
-
-  const handleSendReminderForBooking = (booking: Booking) => {
-    const reminderMsg = StorageService.generateReminderMessage(booking, settingsForm);
-    const link = StorageService.buildWhatsAppLink(booking.clientPhone, reminderMsg);
-    window.open(link, '_blank');
-    showToast(`Lembrete WhatsApp aberto para ${booking.clientName}!`);
-  };
-
-  const upcomingReminders = useMemo(() => {
-    return StorageService.getUpcomingBookingsForReminder(settingsForm.reminderHoursBefore || 24);
-  }, [bookings, settingsForm.reminderHoursBefore]);
-
-  const sampleReminderText = useMemo(() => {
-    const sampleBooking: Booking = {
-      id: 'BK-EXEMPLO',
-      createdAt: new Date().toISOString(),
-      clientName: 'Amanda Silveira',
-      clientPhone: '68981180360',
-      serviceId: 'prod-1',
-      serviceName: 'Unha Encapsulada com Flores Secas',
-      servicePrice: 120,
-      date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      time: '14:30',
-      paymentMethod: 'dinheiro',
-      status: 'Confirmado',
-    };
-    return StorageService.generateReminderMessage(sampleBooking, settingsForm);
-  }, [settingsForm]);
-
   return (
     <div className="py-8 max-w-7xl mx-auto px-4 sm:px-8">
       {/* Toast Notification */}
@@ -750,7 +706,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <span>Cartão Fidelidade</span>
           </button>
 
-          {/* TAB 6: CONFIGURAÇÕES & LEMBRETES */}
+          {/* TAB 6: CONFIGURAÇÕES */}
           <button
             onClick={() => setSubTab('settings')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
@@ -760,12 +716,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             }`}
           >
             <Phone className="w-4 h-4" />
-            <span>Configurações & Lembretes</span>
-            {upcomingReminders.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
-                {upcomingReminders.length}
-              </span>
-            )}
+            <span>Configurações & Contatos</span>
           </button>
         </div>
       </div>
@@ -1807,435 +1758,125 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* 6. CONFIGURAÇÕES DO SALÃO & PREFERÊNCIAS DE LEMBRETES     */}
+      {/* 6. CONFIGURAÇÕES DO SALÃO & CONTATOS                      */}
       {/* ========================================================= */}
       {subTab === 'settings' && (
-        <div className="space-y-8 animate-in fade-in duration-200">
-          {/* Top Info Banner */}
-          <div className="bg-white p-6 rounded-3xl border border-pink-100 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="max-w-2xl bg-white rounded-3xl border border-pink-100 p-6 sm:p-8 shadow-2xs space-y-6 animate-in fade-in duration-200">
+          <div>
+            <h3 className="font-serif text-xl font-bold text-black">
+              Dados do Salão & WhatsApp Oficial
+            </h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Estes telefones são utilizados nos links diretos de WhatsApp e nos modelos de agendamento em Rio Branco - AC.
+            </p>
+          </div>
+
+          {settingsSaved && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Configurações salvas com sucesso!</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSaveSettings} className="space-y-4 text-xs sm:text-sm">
             <div>
-              <span className="text-xs font-bold text-pink-600 uppercase tracking-wider block">
-                Configurações do Estabelecimento & Automações
+              <label className="block font-semibold text-stone-700 mb-1">
+                Nome do Estabelecimento:
+              </label>
+              <input
+                type="text"
+                value={settingsForm.name}
+                onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-semibold"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-stone-700 mb-1">
+                WhatsApp Principal para Recebimento de Agendamentos:
+              </label>
+              <input
+                type="text"
+                value={settingsForm.bookingWhatsapp}
+                onChange={(e) => setSettingsForm({ ...settingsForm, bookingWhatsapp: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono font-semibold"
+              />
+              <span className="text-[11px] text-stone-400 mt-1 block">
+                Padrão informado: (68) 99282-7744
               </span>
-              <h3 className="font-serif text-2xl font-black text-black mt-0.5">
-                Dados do Salão & Preferências de Lembretes WhatsApp
-              </h3>
-              <p className="text-xs text-stone-500 mt-1 max-w-2xl leading-relaxed">
-                Configure os canais oficiais de agendamento em Rio Branco - AC e personalize a mensagem e envio de lembretes automáticos para as clientes 24 horas antes do atendimento.
-              </p>
             </div>
 
-            {settingsSaved && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2 font-bold shrink-0">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Preferências salvas com sucesso!</span>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* COLUMN 1: DADOS GERAIS DO SALÃO */}
-            <div className="bg-white rounded-3xl border border-pink-100 p-6 sm:p-8 shadow-2xs space-y-6">
-              <div className="flex items-center gap-2.5 pb-4 border-b border-stone-100">
-                <div className="w-9 h-9 rounded-xl bg-stone-950 text-white flex items-center justify-center font-bold">
-                  <Phone className="w-4 h-4 text-pink-400" />
-                </div>
-                <div>
-                  <h4 className="font-serif text-lg font-bold text-black">
-                    Dados do Salão & Contatos
-                  </h4>
-                  <p className="text-[11px] text-stone-500">
-                    Telefones e chave PIX para recibos oficiais
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSaveSettings} className="space-y-4 text-xs sm:text-sm">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Nome do Estabelecimento:
-                  </label>
-                  <input
-                    type="text"
-                    value={settingsForm.name}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    WhatsApp Principal para Recebimento de Agendamentos:
-                  </label>
-                  <input
-                    type="text"
-                    value={settingsForm.bookingWhatsapp}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, bookingWhatsapp: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono font-semibold"
-                  />
-                  <span className="text-[11px] text-stone-400 mt-1 block">
-                    Padrão oficial cadastrado: (68) 99282-7744 (5568992827744)
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">
-                      Telefone de Atendimento 1:
-                    </label>
-                    <input
-                      type="text"
-                      value={settingsForm.phones[0] || ''}
-                      onChange={(e) =>
-                        setSettingsForm({
-                          ...settingsForm,
-                          phones: [e.target.value, settingsForm.phones[1] || ''],
-                        })
-                      }
-                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">
-                      Telefone de Atendimento 2:
-                    </label>
-                    <input
-                      type="text"
-                      value={settingsForm.phones[1] || ''}
-                      onChange={(e) =>
-                        setSettingsForm({
-                          ...settingsForm,
-                          phones: [settingsForm.phones[0] || '', e.target.value],
-                        })
-                      }
-                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">
-                      Localização / Cidade:
-                    </label>
-                    <input
-                      type="text"
-                      value={`${settingsForm.city} - ${settingsForm.state}`}
-                      disabled
-                      className="w-full px-3.5 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-stone-600 font-semibold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">
-                      Chave PIX Oficial:
-                    </label>
-                    <input
-                      type="text"
-                      value={settingsForm.pixKey}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, pixKey: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
-                  >
-                    Salvar Dados do Salão
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* COLUMN 2: PAINEL DE PREFERÊNCIAS DE LEMBRETES WHATSAPP (24h) */}
-            <div className="bg-white rounded-3xl border border-pink-100 p-6 sm:p-8 shadow-2xs space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
-                    <MessageCircle className="w-4 h-4 fill-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-serif text-lg font-bold text-black">
-                      Lembretes Automáticos WhatsApp
-                    </h4>
-                    <p className="text-[11px] text-stone-500">
-                      Disparo automático 24h antes do agendamento
-                    </p>
-                  </div>
-                </div>
-
-                <span
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                    settingsForm.autoReminderEnabled
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-stone-100 text-stone-500'
-                  }`}
-                >
-                  {settingsForm.autoReminderEnabled ? 'Ativo' : 'Desativado'}
-                </span>
-              </div>
-
-              {/* Form Controls for Reminder Preferences */}
-              <div className="space-y-4 text-xs sm:text-sm">
-                {/* 1. Toggle switch */}
-                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-4">
-                  <div>
-                    <span className="font-bold text-stone-900 block text-xs sm:text-sm">
-                      Envio de Lembretes Automáticos
-                    </span>
-                    <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
-                      Ativa a notificação de confirmação e lembrete para clientes com horários agendados.
-                    </p>
-                  </div>
-
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={!!settingsForm.autoReminderEnabled}
-                      onChange={(e) => {
-                        const updated = { ...settingsForm, autoReminderEnabled: e.target.checked };
-                        setSettingsForm(updated);
-                        StorageService.saveSalonInfo(updated);
-                        onUpdateSalon(updated);
-                        showToast(
-                          e.target.checked
-                            ? 'Lembretes automáticos ativados!'
-                            : 'Lembretes automáticos desativados.'
-                        );
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-stone-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-
-                {/* 2. Window hours selection */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1 text-xs">
-                      Antecedência do Lembrete:
-                    </label>
-                    <select
-                      value={settingsForm.reminderHoursBefore || 24}
-                      onChange={(e) => {
-                        const updated = {
-                          ...settingsForm,
-                          reminderHoursBefore: Number(e.target.value),
-                        };
-                        setSettingsForm(updated);
-                        StorageService.saveSalonInfo(updated);
-                        onUpdateSalon(updated);
-                      }}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-semibold text-xs"
-                    >
-                      <option value={24}>24 Horas Antes (1 dia antes - Recomendado)</option>
-                      <option value={48}>48 Horas Antes (2 dias antes)</option>
-                      <option value={12}>12 Horas Antes (mesmo dia / véspera)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1 text-xs">
-                      Status do Canal:
-                    </label>
-                    <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>API WhatsApp Conectada</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Customizable Reminder Template */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="font-bold text-stone-800 text-xs">
-                      Template Personalizado da Mensagem de Lembrete:
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleResetReminderTemplate}
-                      className="text-[11px] text-pink-600 hover:text-pink-700 font-semibold underline"
-                    >
-                      Restaurar Padrão
-                    </button>
-                  </div>
-
-                  <textarea
-                    rows={5}
-                    value={settingsForm.reminderTemplate || DEFAULT_REMINDER_TEMPLATE}
-                    onChange={(e) => {
-                      const updated = { ...settingsForm, reminderTemplate: e.target.value };
-                      setSettingsForm(updated);
-                    }}
-                    placeholder="Digite o modelo de mensagem de lembrete..."
-                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden text-xs font-mono leading-relaxed resize-none"
-                  />
-
-                  {/* Insertable Tag Chips */}
-                  <div className="mt-2">
-                    <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider block mb-1">
-                      Clique para inserir variáveis dinâmicas:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5 text-[11px]">
-                      {[
-                        { tag: '{cliente}', label: 'Nome da Cliente' },
-                        { tag: '{servico}', label: 'Nome da Unha Artesanal' },
-                        { tag: '{data}', label: 'Data (DD/MM/AAAA)' },
-                        { tag: '{horario}', label: 'Horário' },
-                        { tag: '{valor}', label: 'Valor (R$)' },
-                        { tag: '{salao}', label: 'Nome do Ateliê' },
-                        { tag: '{endereco}', label: 'Endereço/Cidade' },
-                        { tag: '{whatsapp}', label: 'WhatsApp Oficial' },
-                      ].map((item) => (
-                        <button
-                          key={item.tag}
-                          type="button"
-                          onClick={() => insertReminderTag(item.tag)}
-                          className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-pink-100 text-stone-700 hover:text-pink-700 font-mono text-[10px] border border-stone-200 transition-colors"
-                          title={`Inserir ${item.label}`}
-                        >
-                          {item.tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Save button for preferences */}
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={(e) => handleSaveSettings(e)}
-                    className="w-full py-2.5 rounded-xl bg-stone-950 hover:bg-black text-white font-bold text-xs shadow-xs transition-colors"
-                  >
-                    Salvar Preferências de Lembrete
-                  </button>
-                </div>
-              </div>
-
-              {/* 4. Live WhatsApp Preview Balloon */}
-              <div className="pt-4 border-t border-stone-100">
-                <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5 mb-2">
-                  <Eye className="w-3.5 h-3.5 text-pink-600" /> Pré-Visualização Formatada (Como a cliente recebe):
-                </span>
-                <div className="bg-[#e5ddd5] p-3.5 rounded-2xl shadow-inner border border-stone-300">
-                  <div className="bg-white rounded-xl p-3 shadow-xs max-w-sm ml-auto text-[11px] leading-relaxed text-stone-900 border border-emerald-100">
-                    <p className="whitespace-pre-line font-sans">{sampleReminderText}</p>
-                    <div className="text-right text-[9px] text-stone-400 mt-1.5 flex items-center justify-end gap-1 font-mono">
-                      <span>14:00</span>
-                      <span className="text-emerald-600">✓✓</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ======================================================= */}
-          {/* PRÓXIMOS AGENDAMENTOS PARA LEMBRETE (24H/48H)          */}
-          {/* ======================================================= */}
-          <div className="bg-white rounded-3xl border border-pink-100 p-6 sm:p-8 shadow-2xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <span className="text-xs font-bold text-pink-600 uppercase tracking-wider block">
-                  Disparador Rápido de Lembretes
-                </span>
-                <h4 className="font-serif text-xl font-bold text-black mt-0.5">
-                  Agendamentos Elegíveis nas Próximas 24 Horas
-                </h4>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Lista de clientes com horários marcados para hoje ou amanhã. Dispare a notificação diretamente pelo WhatsApp em um clique.
-                </p>
+                <label className="block font-semibold text-stone-700 mb-1">
+                  Telefone de Contato 1:
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.phones[0] || ''}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      phones: [e.target.value, settingsForm.phones[1] || ''],
+                    })
+                  }
+                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono"
+                />
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-bold border border-pink-200">
-                  {upcomingReminders.length} na fila de lembrete
-                </span>
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">
+                  Telefone de Contato 2:
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.phones[1] || ''}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      phones: [settingsForm.phones[0] || '', e.target.value],
+                    })
+                  }
+                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono"
+                />
               </div>
             </div>
 
-            {upcomingReminders.length === 0 ? (
-              <div className="text-center py-10 bg-stone-50 rounded-2xl border border-stone-200 p-6">
-                <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                <h5 className="font-serif font-bold text-sm text-stone-900">
-                  Tudo em dia!
-                </h5>
-                <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">
-                  Não há agendamentos pendentes de lembrete nas próximas 24 horas. Os lembretes são ativados automaticamente quando houver agendamentos na janela.
-                </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">
+                  Cidade / Estado:
+                </label>
+                <input
+                  type="text"
+                  value={`${settingsForm.city} - ${settingsForm.state}`}
+                  disabled
+                  className="w-full px-3.5 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-stone-600"
+                />
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {upcomingReminders.map(({ booking, isTomorrow, isToday }) => {
-                  const [year, month, day] = booking.date.split('-');
-                  const formattedDate = `${day}/${month}/${year}`;
-                  return (
-                    <div
-                      key={booking.id}
-                      className="p-5 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between gap-4 hover:border-pink-300 transition-all shadow-2xs"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                              isToday
-                                ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                            }`}
-                          >
-                            {isToday ? '🔔 Agendamento Hoje' : '⏰ Agendamento Amanhã (24h)'}
-                          </span>
 
-                          <span className="text-[11px] font-mono text-stone-400">
-                            #{booking.id}
-                          </span>
-                        </div>
-
-                        <h5 className="font-bold text-sm sm:text-base text-black">
-                          {booking.clientName}
-                        </h5>
-                        <p className="text-xs text-stone-600 mt-0.5">
-                          Telefone: <b className="font-mono">{booking.clientPhone}</b>
-                        </p>
-
-                        <div className="mt-3 p-2.5 rounded-xl bg-white border border-stone-200 text-xs space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-stone-500">Modelo:</span>
-                            <span className="font-bold text-stone-900">{booking.serviceName}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-stone-500">Data & Horário:</span>
-                            <span className="font-bold text-pink-600">{formattedDate} às {booking.time}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-stone-500">Valor Total:</span>
-                            <span className="font-bold text-stone-900">R$ {booking.servicePrice.toFixed(2).replace('.', ',')}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={() => handleSendReminderForBooking(booking)}
-                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95"
-                          title="Abrir WhatsApp com a mensagem de lembrete personalizada preenchida"
-                        >
-                          <MessageCircle className="w-4 h-4 fill-white" />
-                          <span>Disparar Lembrete WhatsApp</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">
+                  Chave PIX:
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.pixKey}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, pixKey: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono"
+                />
               </div>
-            )}
-          </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+              >
+                Salvar Configurações
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

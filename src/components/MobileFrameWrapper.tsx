@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import {
   Smartphone,
   Monitor,
@@ -10,14 +10,13 @@ import {
   ShieldCheck,
   MessageCircle,
   Sparkles,
-  Award,
 } from 'lucide-react';
 
 interface MobileFrameWrapperProps {
   isMobilePreview: boolean;
   setIsMobilePreview: (val: boolean) => void;
-  activeTab: 'catalog' | 'admin' | 'about' | 'loyalty';
-  setActiveTab: (tab: 'catalog' | 'admin' | 'about' | 'loyalty') => void;
+  activeTab: 'catalog' | 'admin' | 'about';
+  setActiveTab: (tab: 'catalog' | 'admin' | 'about') => void;
   onOpenBooking: () => void;
   whatsappNumber: string;
   children: React.ReactNode;
@@ -32,15 +31,6 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({
   whatsappNumber,
   children,
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Scroll to top of mobile viewport whenever tab changes
-  useEffect(() => {
-    if (isMobilePreview && scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [activeTab, isMobilePreview]);
-
   if (!isMobilePreview) {
     return <>{children}</>;
   }
@@ -86,7 +76,7 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({
           </div>
 
           {/* Mobile Scrollable Canvas */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar relative pb-20">
+          <div className="flex-1 overflow-y-auto no-scrollbar relative pb-20">
             {children}
           </div>
 
@@ -94,22 +84,12 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({
           <div className="absolute bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-pink-100 px-4 py-2 flex items-center justify-around shadow-lg">
             <button
               onClick={() => setActiveTab('catalog')}
-              className={`flex flex-col items-center gap-1 min-w-[48px] transition-colors ${
+              className={`flex flex-col items-center gap-1 min-w-[50px] transition-colors ${
                 activeTab === 'catalog' ? 'text-pink-600' : 'text-stone-500 hover:text-stone-900'
               }`}
             >
               <Grid className="w-5 h-5" />
               <span className="text-[10px] font-semibold">Catálogo</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('loyalty')}
-              className={`flex flex-col items-center gap-1 min-w-[48px] transition-colors ${
-                activeTab === 'loyalty' ? 'text-pink-600' : 'text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              <Award className="w-5 h-5" />
-              <span className="text-[10px] font-semibold">Fidelidade</span>
             </button>
 
             <button
@@ -124,7 +104,7 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({
 
             <button
               onClick={() => setActiveTab('admin')}
-              className={`flex flex-col items-center gap-1 min-w-[48px] transition-colors ${
+              className={`flex flex-col items-center gap-1 min-w-[50px] transition-colors ${
                 activeTab === 'admin' ? 'text-pink-600' : 'text-stone-500 hover:text-stone-900'
               }`}
             >

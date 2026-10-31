@@ -57,25 +57,6 @@ export interface FinancialRecord {
   notes?: string;
 }
 
-export interface ProductReview {
-  id: string;
-  serviceId: string;
-  clientName: string;
-  rating: number; // 1 to 5
-  comment: string;
-  date: string; // YYYY-MM-DD
-}
-
-export interface Testimonial {
-  id: string;
-  clientName: string;
-  clientCity: string;
-  serviceName: string;
-  rating: number; // 1 to 5
-  comment: string;
-  date: string;
-}
-
 export interface SalonInfo {
   name: string;
   niche: string;
@@ -88,9 +69,6 @@ export interface SalonInfo {
   pixKey: string;
   pixReceiver: string;
   openingHours: string;
-  autoReminderEnabled?: boolean;
-  reminderTemplate?: string;
-  reminderHoursBefore?: number;
 }
 
 export interface LoyaltyHistoryItem {

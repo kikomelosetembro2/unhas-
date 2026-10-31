@@ -94,11 +94,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const changeToReturn = needChange && changeForNumber > price ? changeForNumber - price : 0;
   const isChangeInvalid = needChange && changeForNumber > 0 && changeForNumber < price;
 
-  const [identifiedClient, setIdentifiedClient] = useState<{ name: string; points?: number; bookingsCount: number } | null>(null);
-
   if (!isOpen) return null;
 
-  // Format phone automatically: (68) 9XXXX-XXXX and auto-identify client
+  // Format phone automatically: (68) 9XXXX-XXXX
   const handlePhoneChange = (val: string) => {
     const digits = val.replace(/\D/g, '').slice(0, 11);
     if (digits.length <= 2) {
@@ -109,21 +107,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setClientPhone(
         `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`
       );
-    }
-
-    // Auto-identify client by phone from past bookings or loyalty records
-    if (digits.length >= 8) {
-      const identified = StorageService.findClientByPhone(digits);
-      if (identified) {
-        setIdentifiedClient(identified);
-        if (!clientName.trim()) {
-          setClientName(identified.name);
-        }
-      } else {
-        setIdentifiedClient(null);
-      }
-    } else {
-      setIdentifiedClient(null);
     }
   };
 
@@ -551,27 +534,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </p>
                   </div>
 
-                  {/* Client Identification Banner */}
-                  {identifiedClient && (
-                    <div className="p-3 bg-pink-50/90 border border-pink-200 rounded-xl text-xs flex items-center justify-between animate-in fade-in">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-pink-600 text-white font-black flex items-center justify-center text-xs shadow-xs">
-                          {identifiedClient.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <span className="font-bold text-stone-900 block">
-                            Bem-vinda de volta, {identifiedClient.name}! ✨
-                          </span>
-                          <span className="text-[11px] text-stone-600">
-                            Cliente identificada {identifiedClient.points !== undefined ? `· Saldo: ${identifiedClient.points}/5 pontos no Cartão Fidelidade` : ''}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
-                        ✓ Reconhecida
-                      </span>
-                    </div>
-                  )}
+                  {/* Client Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-pink-600" />
+                      Nome Completo: *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Maria Eduarda Silva"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-hidden placeholder:text-stone-400"
+                    />
+                  </div>
 
                   {/* Client Phone / WhatsApp */}
                   <div>
@@ -584,26 +560,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       placeholder="(68) 99282-XXXX"
                       value={clientPhone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-hidden placeholder:text-stone-400 font-mono font-semibold"
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-hidden placeholder:text-stone-400 font-mono"
                     />
                     <span className="text-[10px] text-stone-400 mt-1 block">
-                      Digite seu WhatsApp. Clientes cadastradas são identificadas automaticamente.
+                      DDD do Acre é 68.
                     </span>
-                  </div>
-
-                  {/* Client Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-pink-600" />
-                      Nome Completo da Cliente: *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Maria Eduarda Silva"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-hidden placeholder:text-stone-400 font-semibold"
-                    />
                   </div>
 
                   {/* Notes */}
