@@ -89,12 +89,10 @@ export const AboutSalon: React.FC<AboutSalonProps> = ({ salon, onOpenBooking }) 
                 <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>WhatsApp de Agendamentos: <b>{salon.bookingWhatsapp}</b></span>
               </div>
-              {salon.phones.filter(p => p && p !== salon.bookingWhatsapp).length > 0 && (
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-pink-400 shrink-0" />
-                  <span>Outros Contatos: {salon.phones.filter(p => p && p !== salon.bookingWhatsapp).join(' · ')}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                <Phone className="w-4 h-4 text-pink-400 shrink-0" />
+                <span>Outros Contatos: {salon.phones.join(' · ')}</span>
+              </div>
             </div>
 
             <div className="pt-4">

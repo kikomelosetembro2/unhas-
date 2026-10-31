@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             <span className="hidden sm:inline text-stone-600">|</span>
             <span className="hidden sm:inline truncate">
-              WhatsApp: {salon.bookingWhatsapp} {salon.phones[1] && salon.phones[1] !== salon.bookingWhatsapp ? `· ${salon.phones[1]}` : ''}
+              Atendimento: {salon.bookingWhatsapp} · {salon.phones[0]}
             </span>
           </div>
 

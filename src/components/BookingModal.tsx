@@ -198,16 +198,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       notes,
     });
 
-    // Always direct to WhatsApp (68) 98118-0360
-    const recipientNumber = salon.rawWhatsappNumber || '5568981180360';
-    const waUrl = StorageService.buildWhatsAppLink(recipientNumber, waMessage);
+    // Always direct to WhatsApp (68) 99282-7744
+    const waUrl = StorageService.buildWhatsAppLink('5568992827744', waMessage);
 
     setCreatedBooking(newBooking);
     setGeneratedWhatsAppUrl(waUrl);
     setGeneratedReceiptText(waMessage);
     onBookingSuccess(newBooking);
 
-    // Open WhatsApp immediately with receipt to (68) 98118-0360
+    // Open WhatsApp immediately with receipt to (68) 99282-7744
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -301,13 +300,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                  <Check className="w-3.5 h-3.5" /> Comprovante Enviado para WhatsApp {salon.bookingWhatsapp || '(68) 98118-0360'}
+                  <Check className="w-3.5 h-3.5" /> Comprovante Enviado para WhatsApp (68) 99282-7744
                 </span>
                 <h3 className="font-serif text-2xl font-bold text-stone-950 mt-2">
                   Agendamento Confirmado!
                 </h3>
                 <p className="text-xs text-stone-600 mt-1 max-w-sm mx-auto">
-                  O comprovante oficial com todos os detalhes foi gerado e enviado diretamente para a designer no WhatsApp <b>{salon.bookingWhatsapp || '(68) 98118-0360'}</b>.
+                  O comprovante oficial com todos os detalhes foi gerado e enviado diretamente para a designer no WhatsApp <b>(68) 99282-7744</b>.
                 </p>
               </div>
 
@@ -377,7 +376,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 )}
 
                 <div className="pt-2 border-t border-stone-100 text-[10px] text-stone-400 text-center">
-                  B & K NAILS DESIGNER · Rio Branco - AC · WhatsApp: {salon.bookingWhatsapp || '(68) 98118-0360'}
+                  B & K NAILS DESIGNER · Rio Branco - AC · WhatsApp: (68) 99282-7744
                 </div>
               </div>
 
@@ -390,7 +389,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   className="w-full py-3.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  <span>Reabrir WhatsApp ({salon.bookingWhatsapp || '(68) 98118-0360'})</span>
+                  <span>Reabrir WhatsApp (68) 99282-7744</span>
                 </a>
 
                 <button
@@ -453,7 +452,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                               src={service.imageUrl}
                               alt={service.name}
                               className="w-12 h-12 rounded-lg object-cover border border-stone-200 shrink-0"
-                              referrerPolicy="no-referrer"
                             />
                             <div>
                               <h5 className="font-semibold text-xs text-stone-900 leading-tight">
@@ -486,21 +484,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </p>
                   </div>
 
-                  {/* Selected service summary with photo */}
-                  <div className="p-3 bg-pink-50 rounded-xl border border-pink-100 flex items-center justify-between text-xs gap-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={activeService.imageUrl}
-                        alt={activeService.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-pink-200 shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div>
-                        <span className="text-[10px] text-stone-500 block">Arte Selecionada:</span>
-                        <span className="font-semibold text-stone-900">{activeService.name}</span>
-                      </div>
+                  {/* Selected service summary pill */}
+                  <div className="p-3 bg-pink-50 rounded-xl border border-pink-100 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[10px] text-stone-500 block">Arte Selecionada:</span>
+                      <span className="font-semibold text-stone-900">{activeService.name}</span>
                     </div>
-                    <span className="font-bold text-pink-600 shrink-0">
+                    <span className="font-bold text-pink-600">
                       R$ {activeService.price.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
@@ -591,7 +581,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </label>
                     <input
                       type="tel"
-                      placeholder="(68) 9XXXX-XXXX"
+                      placeholder="(68) 99282-XXXX"
                       value={clientPhone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-hidden placeholder:text-stone-400 font-mono font-semibold"
