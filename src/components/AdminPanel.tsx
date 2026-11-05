@@ -34,9 +34,21 @@ import {
   QrCode,
   ArrowUpRight,
   Filter,
+  UserCheck,
+  Users,
+  Printer,
+  FileDown,
+  Lock,
 } from 'lucide-react';
-import { NailService, Booking, SalonInfo, LoyaltyClient } from '../types';
+import { NailService, Booking, SalonInfo, LoyaltyClient, Consultant } from '../types';
 import { StorageService } from '../services/storage';
+import { PDFService } from '../services/pdfGenerator';
+import {
+  HERO_IMAGE,
+  CONSULTANT_BARBARA_IMAGE,
+  CONSULTANT_KARLA_IMAGE,
+  PRODUCT_IMAGES_MAP,
+} from '../data/initialProducts';
 
 interface AdminPanelProps {
   products: NailService[];
@@ -46,6 +58,7 @@ interface AdminPanelProps {
   salon: SalonInfo;
   onUpdateSalon: (newSalon: SalonInfo) => void;
   onCloseAdmin: () => void;
+  onLogout?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -56,11 +69,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   salon,
   onUpdateSalon,
   onCloseAdmin,
+  onLogout,
 }) => {
   // Navigation Sub-Tabs
   const [subTab, setSubTab] = useState<
-    'dashboard' | 'ranking' | 'products' | 'bookings' | 'loyalty' | 'settings'
+    'dashboard' | 'ranking' | 'consultants' | 'products' | 'bookings' | 'loyalty' | 'settings'
   >('dashboard');
+
+  // Consultants management state
+  const [consultants, setConsultants] = useState<Consultant[]>(() =>
+    StorageService.getConsultants()
+  );
+  const [consultantFilter, setConsultantFilter] = useState<string>('Todos');
+  const [isEditingConsultant, setIsEditingConsultant] = useState<boolean>(false);
+  const [editingConsultantId, setEditingConsultantId] = useState<string | null>(null);
+  const [consultantForm, setConsultantForm] = useState<{
+    name: string;
+    role: string;
+    specialty: string;
+    phone: string;
+    imageUrl: string;
+    active: boolean;
+    shiftHours: string;
+    bio: string;
+  }>({
+    name: '',
+    role: 'Consultora & Nail Designer',
+    specialty: '',
+    phone: '(68) 98118-0360',
+    imageUrl: CONSULTANT_BARBARA_IMAGE,
+    active: true,
+    shiftHours: '08:00 às 18:30 (Seg a Sáb)',
+    bio: '',
+  });
 
   // Bookings & Financial Date Filter
   const [financialDateFilter, setFinancialDateFilter] = useState<'todos' | 'hoje' | 'semana' | 'mes'>('todos');
@@ -109,7 +150,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     duration: '1h20min',
     durationMinutes: 80,
     description: '',
-    imageUrl: '/src/assets/images/hero_bk_nails_1793339141928.jpg',
+    imageUrl: HERO_IMAGE,
     available: true,
   });
 
@@ -235,7 +276,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           serviceId: b.serviceId,
           serviceName: b.serviceName,
           category: 'Nail Art',
-          imageUrl: '/src/assets/images/hero_bk_nails_1793339141928.jpg',
+          imageUrl: HERO_IMAGE,
           currentPrice: b.servicePrice,
           totalRequests: 0,
           completedRequests: 0,
@@ -275,6 +316,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
     return bookings.filter((b) => {
       if (statusFilter !== 'Todos' && b.status !== statusFilter) return false;
+      if (consultantFilter !== 'Todos') {
+        const bCons = b.consultantName || b.attendantName || '';
+        if (bCons !== consultantFilter) return false;
+      }
       if (dateFilter === 'hoje' && b.date !== today) return false;
       if (dateFilter === 'semana') {
         const bDate = new Date(b.date);
@@ -292,11 +337,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         const matchName = b.clientName.toLowerCase().includes(q);
         const matchPhone = b.clientPhone.toLowerCase().includes(q);
         const matchService = b.serviceName.toLowerCase().includes(q);
-        if (!matchName && !matchPhone && !matchService) return false;
+        const matchConsultant = (b.consultantName || b.attendantName || '').toLowerCase().includes(q);
+        if (!matchName && !matchPhone && !matchService && !matchConsultant) return false;
       }
       return true;
     });
-  }, [bookings, statusFilter, dateFilter, bookingSearch]);
+  }, [bookings, statusFilter, consultantFilter, dateFilter, bookingSearch]);
 
   // Filtered Products for Catalog Management
   const filteredProducts = useMemo(() => {
@@ -310,7 +356,123 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   }, [products, productCategoryFilter, productSearch]);
 
   // -------------------------------------------------------------
-  // ACTIONS: BOOKINGS & STATUS
+  // ACTIONS: CONSULTORES CRUD
+  // -------------------------------------------------------------
+  const handleOpenAddConsultant = () => {
+    setEditingConsultantId(null);
+    setConsultantForm({
+      name: '',
+      role: 'Consultora & Nail Designer',
+      specialty: '',
+      phone: '(68) 98118-0360',
+      imageUrl: CONSULTANT_BARBARA_IMAGE,
+      active: true,
+      shiftHours: '08:00 às 18:30 (Seg a Sáb)',
+      bio: '',
+    });
+    setIsEditingConsultant(true);
+  };
+
+  const handleOpenEditConsultant = (cons: Consultant) => {
+    setEditingConsultantId(cons.id);
+    setConsultantForm({
+      name: cons.name,
+      role: cons.role,
+      specialty: cons.specialty,
+      phone: cons.phone,
+      imageUrl: cons.imageUrl,
+      active: cons.active,
+      shiftHours: cons.shiftHours || '08:00 às 18:30 (Seg a Sáb)',
+      bio: cons.bio || '',
+    });
+    setIsEditingConsultant(true);
+  };
+
+  const handleSaveConsultant = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!consultantForm.name.trim()) return;
+
+    if (editingConsultantId) {
+      const updated = StorageService.updateConsultant(editingConsultantId, {
+        name: consultantForm.name.trim(),
+        role: consultantForm.role.trim(),
+        specialty: consultantForm.specialty.trim(),
+        phone: consultantForm.phone.trim(),
+        imageUrl: consultantForm.imageUrl,
+        active: consultantForm.active,
+        shiftHours: consultantForm.shiftHours.trim(),
+        bio: consultantForm.bio.trim(),
+      });
+      setConsultants(updated);
+      showToast('Consultora atualizada com sucesso!');
+    } else {
+      StorageService.addConsultant({
+        name: consultantForm.name.trim(),
+        role: consultantForm.role.trim(),
+        specialty: consultantForm.specialty.trim(),
+        phone: consultantForm.phone.trim(),
+        imageUrl: consultantForm.imageUrl,
+        active: consultantForm.active,
+        shiftHours: consultantForm.shiftHours.trim(),
+        bio: consultantForm.bio.trim(),
+      });
+      setConsultants(StorageService.getConsultants());
+      showToast('Nova consultora cadastrada com sucesso!');
+    }
+
+    setIsEditingConsultant(false);
+  };
+
+  const handleDeleteConsultant = (id: string) => {
+    const target = consultants.find((c) => c.id === id);
+    if (confirm(`Tem certeza que deseja excluir o cadastro da consultora "${target?.name || ''}"?`)) {
+      const updated = StorageService.deleteConsultant(id);
+      setConsultants(updated);
+      showToast('Consultora excluída do sistema.');
+    }
+  };
+
+  const handleToggleConsultantActive = (id: string) => {
+    const target = consultants.find((c) => c.id === id);
+    if (!target) return;
+    const updated = StorageService.updateConsultant(id, { active: !target.active });
+    setConsultants(updated);
+    showToast(`Status de ${target.name} alterado.`);
+  };
+
+  const handleResetConsultants = () => {
+    if (confirm('Deseja restaurar as 2 consultoras oficiais (Bárbara e Karla Designer)?')) {
+      const reset = StorageService.resetConsultants();
+      setConsultants(reset);
+      showToast('Consultoras oficiais restauradas!');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // ACTIONS: COMPROVANTE PDF (BAIXAR E IMPRIMIR)
+  // -------------------------------------------------------------
+  const handleDownloadBookingPDF = (booking: Booking) => {
+    const matchedCons =
+      consultants.find(
+        (c) =>
+          c.id === booking.consultantId ||
+          c.name === booking.consultantName ||
+          c.name === booking.attendantName
+      ) || consultants[0];
+    PDFService.downloadBookingPDF(booking, salon, matchedCons);
+    showToast(`Comprovante PDF #${booking.id} baixado com sucesso!`);
+  };
+
+  const handleOpenBookingPDF = (booking: Booking) => {
+    const matchedCons =
+      consultants.find(
+        (c) =>
+          c.id === booking.consultantId ||
+          c.name === booking.consultantName ||
+          c.name === booking.attendantName
+      ) || consultants[0];
+    PDFService.openBookingPDF(booking, salon, matchedCons);
+  };
   // -------------------------------------------------------------
   const handleStatusChange = (id: string, newStatus: Booking['status']) => {
     const updated = StorageService.updateBookingStatus(id, newStatus);
@@ -406,7 +568,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       duration: '1h20min',
       durationMinutes: 80,
       description: '',
-      imageUrl: '/src/assets/images/hero_bk_nails_1793339141928.jpg',
+      imageUrl: HERO_IMAGE,
       available: true,
     });
     setIsEditingProduct(true);
@@ -617,13 +779,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={onCloseAdmin}
-              className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold transition-colors flex items-center gap-1.5"
             >
               <span>Voltar ao Catálogo</span>
             </button>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="px-3.5 py-2 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-200 text-xs font-semibold border border-red-800/40 transition-colors flex items-center gap-1.5"
+                title="Bloquear sessão administrativa"
+              >
+                <Lock className="w-3.5 h-3.5 text-red-400" />
+                <span>Bloquear Acesso</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -658,6 +830,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <span>Mais Solicitados</span>
             <span className="w-5 h-5 rounded-full bg-stone-900 text-amber-300 text-[10px] flex items-center justify-center font-bold">
               {mostRequestedRanking.length}
+            </span>
+          </button>
+
+          {/* TAB: CADASTRO DE CONSULTORES */}
+          <button
+            onClick={() => setSubTab('consultants')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              subTab === 'consultants'
+                ? 'bg-pink-600 text-white shadow-xs'
+                : 'text-stone-300 hover:text-white hover:bg-stone-900'
+            }`}
+          >
+            <Users className="w-4 h-4 text-pink-300" />
+            <span>Consultores (Cadastro)</span>
+            <span className="w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] flex items-center justify-center font-bold">
+              {consultants.length}
             </span>
           </button>
 
@@ -1232,6 +1420,374 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       )}
 
       {/* ========================================================= */}
+      {/* 2.5 GESTÃO & CADASTRO DE CONSULTORES DE ATENDIMENTO       */}
+      {/* ========================================================= */}
+      {subTab === 'consultants' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Header & Controls */}
+          <div className="bg-white p-6 rounded-3xl border border-pink-100 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold text-pink-600 uppercase tracking-wider block">
+                Equipe & Atendimento
+              </span>
+              <h3 className="font-serif text-2xl font-bold text-black flex items-center gap-2">
+                <Users className="w-6 h-6 text-pink-600" />
+                Cadastro e Gestão de Consultores
+              </h3>
+              <p className="text-xs text-stone-500 mt-1 max-w-2xl leading-relaxed">
+                Opção de atendimento de dois consultores ou mais. Cadastre, edite fotos, defina especialidades e turnos. As profissionais ativas ficam disponíveis para escolha direta da cliente no agendamento e seus dados saem no comprovante oficial em PDF.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleResetConsultants}
+                className="px-3.5 py-2.5 rounded-xl border border-stone-300 hover:border-pink-400 text-stone-700 text-xs font-semibold flex items-center gap-1.5 transition-colors bg-white shadow-2xs"
+                title="Restaura as 2 consultoras oficiais Bárbara e Karla Designer"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-stone-500" />
+                <span>Restaurar Consultoras Oficiais</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenAddConsultant}
+                className="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Cadastrar Nova Consultora</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Consultants Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {consultants.map((cons) => {
+              // Calculate stats for this consultant
+              const consBookings = bookings.filter(
+                (b) => b.consultantId === cons.id || b.consultantName === cons.name || b.attendantName === cons.name
+              );
+              const completedCons = consBookings.filter((b) => b.status === 'Concluído');
+              const revenueCons = completedCons.reduce((acc, b) => acc + b.servicePrice, 0);
+
+              return (
+                <div
+                  key={cons.id}
+                  className={`bg-white rounded-3xl p-6 border shadow-2xs transition-all relative flex flex-col justify-between ${
+                    cons.active ? 'border-pink-200' : 'border-stone-200 opacity-75'
+                  }`}
+                >
+                  <div>
+                    {/* Header: Photo, Name & Active Badge */}
+                    <div className="flex items-start gap-4 pb-4 border-b border-stone-100">
+                      <img
+                        src={cons.imageUrl}
+                        alt={cons.name}
+                        className="w-20 h-20 rounded-2xl object-cover border-2 border-pink-300 shadow-xs shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-serif text-lg font-bold text-stone-900 truncate">
+                            {cons.name}
+                          </h4>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              cons.active
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : 'bg-stone-100 text-stone-600 border border-stone-200'
+                            }`}
+                          >
+                            {cons.active ? 'Ativa no Agendamento' : 'Pausada'}
+                          </span>
+                        </div>
+
+                        <span className="text-xs font-bold text-pink-600 block mt-0.5">
+                          {cons.role}
+                        </span>
+
+                        <div className="flex items-center gap-1.5 text-xs text-stone-500 font-mono mt-1">
+                          <Phone className="w-3.5 h-3.5 text-pink-500" />
+                          <span>{cons.phone}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Details: Specialty, Shift & Bio */}
+                    <div className="py-4 space-y-2.5 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-stone-400 block">
+                          Especialidades:
+                        </span>
+                        <p className="font-semibold text-stone-800 mt-0.5 bg-stone-50 p-2 rounded-xl border border-stone-150">
+                          {cons.specialty}
+                        </p>
+                      </div>
+
+                      {cons.shiftHours && (
+                        <div className="flex items-center justify-between text-stone-600">
+                          <span className="text-[11px] text-stone-500 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-pink-500" /> Turno de Atendimento:
+                          </span>
+                          <span className="font-semibold text-stone-800">{cons.shiftHours}</span>
+                        </div>
+                      )}
+
+                      {cons.bio && (
+                        <p className="text-[11px] text-stone-500 italic leading-relaxed pt-1">
+                          "{cons.bio}"
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Stats Strip */}
+                    <div className="grid grid-cols-3 gap-2 p-3 bg-pink-50/50 rounded-2xl border border-pink-100 text-center my-1">
+                      <div>
+                        <span className="text-[10px] text-stone-400 block font-semibold">Agendamentos</span>
+                        <span className="font-mono text-sm font-bold text-stone-900">{consBookings.length}</span>
+                      </div>
+                      <div className="border-x border-pink-200">
+                        <span className="text-[10px] text-stone-400 block font-semibold">Concluídos</span>
+                        <span className="font-mono text-sm font-bold text-emerald-700">{completedCons.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-stone-400 block font-semibold">Faturamento</span>
+                        <span className="font-mono text-sm font-bold text-pink-700">R$ {revenueCons.toFixed(0)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div className="pt-4 mt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleConsultantActive(cons.id)}
+                      className="text-xs text-stone-600 hover:text-stone-900 flex items-center gap-1 font-semibold"
+                    >
+                      {cons.active ? (
+                        <>
+                          <EyeOff className="w-3.5 h-3.5 text-stone-400" /> Pausar
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3.5 h-3.5 text-emerald-600" /> Ativar
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditConsultant(cons)}
+                        className="px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteConsultant(cons.id)}
+                        className="p-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                        title="Excluir cadastro"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Modal Form: Cadastrar ou Editar Consultora */}
+          {isEditingConsultant && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/75 backdrop-blur-xs overflow-y-auto">
+              <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-pink-100 overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+                <div className="bg-stone-950 text-white p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Users className="w-5 h-5 text-pink-400" />
+                    <h3 className="font-serif text-lg font-bold">
+                      {editingConsultantId ? 'Editar Consultora' : 'Cadastrar Nova Consultora'}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingConsultant(false)}
+                    className="w-7 h-7 rounded-full bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveConsultant} className="p-6 space-y-4 max-h-[78vh] overflow-y-auto text-xs">
+                  {/* Nome Completo */}
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Nome da Consultora / Designer: *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Bárbara Designer"
+                      value={consultantForm.name}
+                      onChange={(e) => setConsultantForm((prev) => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden"
+                    />
+                  </div>
+
+                  {/* Cargo / Função */}
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Cargo / Função no Salão:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Consultora & Nail Designer Sênior"
+                      value={consultantForm.role}
+                      onChange={(e) => setConsultantForm((prev) => ({ ...prev, role: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden"
+                    />
+                  </div>
+
+                  {/* Especialidade */}
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Especialidades Principais:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Encapsuladas, Flores Secas e Arte 3D em Relevo"
+                      value={consultantForm.specialty}
+                      onChange={(e) => setConsultantForm((prev) => ({ ...prev, specialty: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Telefone / WhatsApp */}
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">
+                        Telefone / WhatsApp Direto:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="(68) 98118-0360"
+                        value={consultantForm.phone}
+                        onChange={(e) => setConsultantForm((prev) => ({ ...prev, phone: e.target.value }))}
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden font-mono"
+                      />
+                    </div>
+
+                    {/* Turno */}
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">
+                        Turno / Horário de Trabalho:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="08:00 às 18:30 (Seg a Sáb)"
+                        value={consultantForm.shiftHours}
+                        onChange={(e) => setConsultantForm((prev) => ({ ...prev, shiftHours: e.target.value }))}
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Foto de Perfil */}
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      URL da Imagem / Foto do Perfil:
+                    </label>
+                    <input
+                      type="text"
+                      value={consultantForm.imageUrl}
+                      onChange={(e) => setConsultantForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
+                      className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden"
+                    />
+
+                    {/* Quick photo presets */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[10px] text-stone-400">Fotos Oficiais:</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setConsultantForm((prev) => ({
+                            ...prev,
+                            imageUrl: CONSULTANT_BARBARA_IMAGE,
+                          }))
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-100 font-semibold text-[10px] border border-pink-200"
+                      >
+                        Bárbara (Morena)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setConsultantForm((prev) => ({
+                            ...prev,
+                            imageUrl: CONSULTANT_KARLA_IMAGE,
+                          }))
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-100 font-semibold text-[10px] border border-pink-200"
+                      >
+                        Karla (Loira)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Biografia / Apresentação:
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Breve descrição da experiência, técnicas e dedicação da consultora..."
+                      value={consultantForm.bio}
+                      onChange={(e) => setConsultantForm((prev) => ({ ...prev, bio: e.target.value }))}
+                      className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 focus:bg-white outline-hidden resize-none"
+                    />
+                  </div>
+
+                  {/* Status checkbox */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="consultantActive"
+                      checked={consultantForm.active}
+                      onChange={(e) => setConsultantForm((prev) => ({ ...prev, active: e.target.checked }))}
+                      className="rounded-sm text-pink-600 focus:ring-pink-500 w-4 h-4"
+                    />
+                    <label htmlFor="consultantActive" className="text-stone-700 font-semibold cursor-pointer">
+                      Consultora ativa e disponível para agendamento online das clientes
+                    </label>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingConsultant(false)}
+                      className="px-4 py-2 text-stone-600 hover:text-stone-900 font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl shadow-xs transition-colors"
+                    >
+                      {editingConsultantId ? 'Salvar Alterações' : 'Cadastrar Consultora'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================= */}
       {/* 3. GESTÃO DE PRODUTOS & PREÇOS (CRUD COMPLETO)            */}
       {/* ========================================================= */}
       {subTab === 'products' && (
@@ -1443,8 +1999,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               ))}
             </div>
 
-            {/* Date Range & Search */}
-            <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* Date Range, Consultant Filter & Search */}
+            <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto">
+              {/* Consultant Filter */}
+              <select
+                value={consultantFilter}
+                onChange={(e) => setConsultantFilter(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-stone-100 border border-stone-200 rounded-xl font-semibold text-stone-800 outline-hidden focus:border-pink-500"
+              >
+                <option value="Todos">Todas as Consultoras</option>
+                {consultants.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
               <div className="flex items-center bg-stone-100 p-1 rounded-xl text-xs">
                 <button
                   onClick={() => setDateFilter('todos')}
@@ -1480,11 +2050,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
 
-              <div className="relative flex-1 md:w-60">
+              <div className="relative flex-1 md:w-56">
                 <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Buscar cliente ou serviço..."
+                  placeholder="Buscar cliente, arte ou consultora..."
                   value={bookingSearch}
                   onChange={(e) => setBookingSearch(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden"
@@ -1511,125 +2081,172 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase font-semibold text-[10px] tracking-wider">
                     <tr>
                       <th className="py-3 px-4">Cliente / Contato</th>
+                      <th className="py-3 px-4">Consultora Escolhida</th>
                       <th className="py-3 px-4">Arte / Serviço</th>
                       <th className="py-3 px-4">Data & Horário</th>
                       <th className="py-3 px-4">Valor & Pagamento</th>
                       <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Ações Rápidas</th>
+                      <th className="py-3 px-4 text-right">Comprovante PDF & Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
-                    {filteredBookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-pink-50/30 transition-colors">
-                        <td className="py-3.5 px-4">
-                          <div className="font-bold text-stone-900">{b.clientName}</div>
-                          <div className="text-stone-500 font-mono text-[11px] flex items-center gap-1 mt-0.5">
-                            <Phone className="w-3 h-3 text-pink-600" />
-                            {b.clientPhone}
-                          </div>
-                          {b.notes && (
-                            <div className="text-[10px] text-stone-400 italic mt-0.5 max-w-xs truncate">
-                              Obs: {b.notes}
+                    {filteredBookings.map((b) => {
+                      const consName = b.consultantName || b.attendantName || 'Bárbara Designer';
+                      const matchedCons =
+                        consultants.find((c) => c.name === consName || c.id === b.consultantId) ||
+                        consultants[0];
+
+                      return (
+                        <tr key={b.id} className="hover:bg-pink-50/30 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-stone-900">{b.clientName}</div>
+                            <div className="text-stone-500 font-mono text-[11px] flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-pink-600" />
+                              {b.clientPhone}
                             </div>
-                          )}
-                        </td>
-
-                        <td className="py-3.5 px-4">
-                          <span className="font-semibold text-stone-900">{b.serviceName}</span>
-                          <span className="text-[10px] text-stone-400 block font-mono">#{b.id}</span>
-                        </td>
-
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-semibold text-stone-900">
-                            {b.date.split('-').reverse().join('/')}
-                          </div>
-                          <div className="text-stone-500 text-[11px] flex items-center gap-1 mt-0.5">
-                            <Clock className="w-3 h-3 text-pink-500" /> {b.time}
-                          </div>
-                        </td>
-
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-bold text-pink-700 text-sm">
-                            R$ {b.servicePrice.toFixed(2).replace('.', ',')}
-                          </div>
-                          <div className="text-[11px] text-stone-600 mt-0.5">
-                            {StorageService.formatPaymentMethod(
-                              b.paymentMethod,
-                              b.needChange,
-                              b.changeFor,
-                              b.changeAmount
+                            {b.notes && (
+                              <div className="text-[10px] text-stone-400 italic mt-0.5 max-w-xs truncate">
+                                Obs: {b.notes}
+                              </div>
                             )}
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <select
-                            value={b.status}
-                            onChange={(e) => handleStatusChange(b.id, e.target.value as Booking['status'])}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border outline-hidden transition-all cursor-pointer ${
-                              b.status === 'Confirmado'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                : b.status === 'Concluído'
-                                ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
-                                : b.status === 'Cancelado'
-                                ? 'bg-red-50 text-red-700 border-red-300'
-                                : 'bg-amber-50 text-amber-800 border-amber-300'
-                            }`}
-                          >
-                            <option value="Pendente">Pendente</option>
-                            <option value="Confirmado">Confirmado</option>
-                            <option value="Concluído">Concluído (Venda)</option>
-                            <option value="Cancelado">Cancelado</option>
-                          </select>
-                        </td>
+                          {/* Consultora Cell */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={matchedCons?.imageUrl || CONSULTANT_BARBARA_IMAGE}
+                                alt={consName}
+                                className="w-7 h-7 rounded-full object-cover border border-pink-200 shadow-2xs shrink-0"
+                              />
+                              <div>
+                                <span className="font-bold text-stone-900 block text-xs">
+                                  {consName}
+                                </span>
+                                <span className="text-[10px] text-pink-600 block">
+                                  {matchedCons?.role || 'Nail Designer'}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
 
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* Fast Action: Mark as Concluded */}
-                            {b.status !== 'Concluído' && (
+                          <td className="py-3.5 px-4">
+                            <span className="font-semibold text-stone-900">{b.serviceName}</span>
+                            <span className="text-[10px] text-stone-400 block font-mono">#{b.id}</span>
+                          </td>
+
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="font-semibold text-stone-900">
+                              {b.date.split('-').reverse().join('/')}
+                            </div>
+                            <div className="text-stone-500 text-[11px] flex items-center gap-1 mt-0.5">
+                              <Clock className="w-3 h-3 text-pink-500" /> {b.time}
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="font-bold text-pink-700 text-sm">
+                              R$ {b.servicePrice.toFixed(2).replace('.', ',')}
+                            </div>
+                            <div className="text-[11px] text-stone-600 mt-0.5">
+                              {StorageService.formatPaymentMethod(
+                                b.paymentMethod,
+                                b.needChange,
+                                b.changeFor,
+                                b.changeAmount
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <select
+                              value={b.status}
+                              onChange={(e) => handleStatusChange(b.id, e.target.value as Booking['status'])}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border outline-hidden transition-all cursor-pointer ${
+                                b.status === 'Confirmado'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : b.status === 'Concluído'
+                                  ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
+                                  : b.status === 'Cancelado'
+                                  ? 'bg-red-50 text-red-700 border-red-300'
+                                  : 'bg-amber-50 text-amber-800 border-amber-300'
+                              }`}
+                            >
+                              <option value="Pendente">Pendente</option>
+                              <option value="Confirmado">Confirmado</option>
+                              <option value="Concluído">Concluído (Venda)</option>
+                              <option value="Cancelado">Cancelado</option>
+                            </select>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Baixar PDF do Comprovante */}
                               <button
                                 type="button"
-                                onClick={() => handleStatusChange(b.id, 'Concluído')}
-                                className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white text-[11px] font-bold border border-emerald-200 transition-colors"
-                                title="Concluir atendimento e somar no Caixa Financeiro"
+                                onClick={() => handleDownloadBookingPDF(b)}
+                                className="p-1.5 rounded-lg bg-stone-900 text-white hover:bg-pink-600 transition-colors shadow-2xs"
+                                title="Baixar Comprovante Oficial em PDF"
                               >
-                                Concluir Venda
+                                <FileDown className="w-4 h-4 text-pink-300" />
                               </button>
-                            )}
 
-                            {/* Client WhatsApp */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenClientWhatsApp(b)}
-                              className="p-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-emerald-600 hover:text-white transition-colors"
-                              title="Mensagem para a cliente"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                            </button>
+                              {/* Visualizar / Imprimir PDF */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenBookingPDF(b)}
+                                className="p-1.5 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-600 hover:text-white transition-colors"
+                                title="Visualizar e Imprimir Comprovante PDF"
+                              >
+                                <Printer className="w-4 h-4" />
+                              </button>
 
-                            {/* Forward to Salon */}
-                            <button
-                              type="button"
-                              onClick={() => handleForwardToSalonWhatsApp(b)}
-                              className="p-1.5 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-600 hover:text-white transition-colors"
-                              title="Reencaminhar para o WhatsApp do Salão (68) 99282-7744"
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </button>
+                              {/* Fast Action: Mark as Concluded */}
+                              {b.status !== 'Concluído' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusChange(b.id, 'Concluído')}
+                                  className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white text-[11px] font-bold border border-emerald-200 transition-colors"
+                                  title="Concluir atendimento e somar no Caixa Financeiro"
+                                >
+                                  Concluir
+                                </button>
+                              )}
 
-                            {/* Delete */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteBooking(b.id)}
-                              className="p-1.5 rounded-lg bg-stone-100 text-stone-400 hover:bg-red-600 hover:text-white transition-colors"
-                              title="Excluir agendamento"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {/* Client WhatsApp */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenClientWhatsApp(b)}
+                                className="p-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-emerald-600 hover:text-white transition-colors"
+                                title="Mensagem para a cliente"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+
+                              {/* Forward to Salon */}
+                              <button
+                                type="button"
+                                onClick={() => handleForwardToSalonWhatsApp(b)}
+                                className="p-1.5 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-600 hover:text-white transition-colors"
+                                title="Reencaminhar para o WhatsApp do Salão (68) 99282-7744"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </button>
+
+                              {/* Delete */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBooking(b.id)}
+                                className="p-1.5 rounded-lg bg-stone-100 text-stone-400 hover:bg-red-600 hover:text-white transition-colors"
+                                title="Excluir agendamento"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2141,17 +2758,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
                     className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs"
                   >
-                    <option value="/src/assets/images/hero_bk_nails_1793339141928.jpg">
+                    <option value={HERO_IMAGE}>
                       Showcase Unhas Blush & Dourado
                     </option>
-                    <option value="/src/assets/images/nail_encapsulated_flowers_1793339144938.jpg">
+                    <option value={PRODUCT_IMAGES_MAP['prod-1']}>
                       Flores Secas Encapsuladas
                     </option>
-                    <option value="/src/assets/images/nail_floral_freehand_1793339143997.jpg">
+                    <option value={PRODUCT_IMAGES_MAP['prod-5']}>
                       Floral Feito à Mão Livre
                     </option>
-                    <option value="/src/assets/images/nail_reverse_french_1793339143817.jpg">
+                    <option value={PRODUCT_IMAGES_MAP['prod-2']}>
                       Francesinha Reversa Traços Finos
+                    </option>
+                    <option value={PRODUCT_IMAGES_MAP['prod-3']}>
+                      Mármore Realista Aquarelado
+                    </option>
+                    <option value={PRODUCT_IMAGES_MAP['prod-4']}>
+                      Degradê Ombrê Glitterizado
+                    </option>
+                    <option value={PRODUCT_IMAGES_MAP['prod-6']}>
+                      Cromado Espelhado com Geométrico
+                    </option>
+                    <option value={PRODUCT_IMAGES_MAP['prod-7']}>
+                      Arte Temática Exclusiva
+                    </option>
+                    <option value={PRODUCT_IMAGES_MAP['prod-8']}>
+                      Animal Print Feito à Mão
+                    </option>
+                    <option value={PRODUCT_IMAGES_MAP['prod-9']}>
+                      Arte 3D em Relevo com Pedrarias
+                    </option>
+                    <option value={PRODUCT_IMAGES_MAP['prod-10']}>
+                      Metalizado Abstrato Contemporâneo
                     </option>
                   </select>
                 </div>

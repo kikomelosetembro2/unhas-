@@ -1,10 +1,88 @@
-import { NailService, Booking, SalonInfo, LoyaltyClient } from '../types';
-import { INITIAL_PRODUCTS, SALON_DATA } from '../data/initialProducts';
+import {
+  NailService,
+  Booking,
+  SalonInfo,
+  LoyaltyClient,
+  Consultant,
+  FinancialRecord,
+  FinancialOperationType,
+  ProductReview,
+  Testimonial,
+} from '../types';
+import {
+  INITIAL_PRODUCTS,
+  SALON_DATA,
+  INITIAL_CONSULTANTS,
+  PRODUCT_IMAGES_MAP,
+} from '../data/initialProducts';
 
-const PRODUCTS_KEY = 'bk_nails_products_v1';
-const BOOKINGS_KEY = 'bk_nails_bookings_v1';
+const PRODUCTS_KEY = 'bk_nails_products_v3';
+const BOOKINGS_KEY = 'bk_nails_bookings_v2';
 const SALON_KEY = 'bk_nails_salon_v1';
 const LOYALTY_KEY = 'bk_nails_loyalty_v1';
+const CONSULTANTS_KEY = 'bk_nails_consultants_v2';
+const FINANCIAL_KEY = 'bk_nails_financial_v1';
+const ADMIN_AUTH_KEY = 'bk_nails_admin_auth_v2';
+const ADMIN_USER_KEY = 'bk_nails_admin_credentials_v1';
+const REVIEWS_KEY = 'bk_nails_reviews_v1';
+const TESTIMONIALS_KEY = 'bk_nails_testimonials_v1';
+
+const INITIAL_TESTIMONIALS: Testimonial[] = [
+  {
+    id: 'test-1',
+    clientName: 'Letícia Albuquerque',
+    clientCity: 'Rio Branco - AC',
+    serviceName: 'Unha Encapsulada com Glitter e Flores Secas',
+    rating: 5,
+    comment: 'Trabalho simplesmente impecável! As flores desidratadas ficaram perfeitas e o acabamento em gel durou mais de 25 dias sem nenhuma lasca.',
+    date: '28/10/2026',
+  },
+  {
+    id: 'test-2',
+    clientName: 'Carla Beatriz Alencar',
+    clientCity: 'Rio Branco - AC',
+    serviceName: 'Nail Art Francesinha Reversa com Traços Finos',
+    rating: 5,
+    comment: 'A precisão do traço manual é impressionante. Já sou cliente fiel da Karla Designer, pontualidade britânica e ateliê super aconchegante.',
+    date: '24/10/2026',
+  },
+  {
+    id: 'test-3',
+    clientName: 'Juliana Medeiros',
+    clientCity: 'Rio Branco - AC',
+    serviceName: 'Arte 3D em Relevo com Pedrarias Aplicadas',
+    rating: 5,
+    comment: 'Fiz para minha formatura e recebi centenas de elogios. As pedrarias não caem por nada e o relevo é super delicado e luxuoso!',
+    date: '19/10/2026',
+  },
+];
+
+const INITIAL_PRODUCT_REVIEWS: ProductReview[] = [
+  {
+    id: 'rev-1',
+    serviceId: 'prod-1',
+    clientName: 'Camila Vasconcelos',
+    rating: 5,
+    comment: 'Encapsulamento com flores secas mais lindo de Rio Branco!',
+    date: '25/10/2026',
+  },
+  {
+    id: 'rev-2',
+    serviceId: 'prod-2',
+    clientName: 'Bruna Nogueira',
+    rating: 5,
+    comment: 'Francesinha reversa perfeita, curvatura impecável.',
+    date: '22/10/2026',
+  },
+  {
+    id: 'rev-3',
+    serviceId: 'prod-5',
+    clientName: 'Fernanda Rocha',
+    rating: 5,
+    comment: 'As flores à mão livre parecem uma pintura em tela minúscula!',
+    date: '20/10/2026',
+  },
+];
 
 const INITIAL_SAMPLE_BOOKINGS: Booking[] = [
   {
@@ -20,6 +98,9 @@ const INITIAL_SAMPLE_BOOKINGS: Booking[] = [
     notes: 'Prefiro flores em tons lilás e dourado suave',
     paymentMethod: 'pix',
     status: 'Concluído',
+    consultantId: 'cons-1',
+    consultantName: 'Bárbara Designer',
+    attendantName: 'Bárbara Designer',
   },
   {
     id: 'bk-102',
@@ -36,6 +117,9 @@ const INITIAL_SAMPLE_BOOKINGS: Booking[] = [
     changeFor: 150.00,
     changeAmount: 50.00,
     status: 'Concluído',
+    consultantId: 'cons-2',
+    consultantName: 'Karla Designer',
+    attendantName: 'Karla Designer',
   },
   {
     id: 'bk-103',
@@ -206,7 +290,37 @@ export const StorageService = {
         localStorage.setItem(PRODUCTS_KEY, JSON.stringify(INITIAL_PRODUCTS));
         return INITIAL_PRODUCTS;
       }
-      return JSON.parse(data);
+      const parsed: NailService[] = JSON.parse(data);
+      let changed = false;
+
+      // Migrate any stale, /src/assets/, or empty image paths to the valid bundled image
+      const updated = parsed.map((p) => {
+        const correctImg = PRODUCT_IMAGES_MAP[p.id];
+        if (
+          correctImg &&
+          (!p.imageUrl ||
+            p.imageUrl.startsWith('/src/assets/') ||
+            p.imageUrl.includes('placeholder') ||
+            p.imageUrl.startsWith('/images/'))
+        ) {
+          changed = true;
+          return { ...p, imageUrl: correctImg };
+        }
+        return p;
+      });
+
+      // Ensure all 10 initial products exist in the catalog
+      INITIAL_PRODUCTS.forEach((initP) => {
+        if (!updated.some((p) => p.id === initP.id)) {
+          updated.push(initP);
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(updated));
+      }
+      return updated;
     } catch {
       return INITIAL_PRODUCTS;
     }
@@ -287,6 +401,130 @@ export const StorageService = {
 
   saveSalonInfo(info: SalonInfo): void {
     localStorage.setItem(SALON_KEY, JSON.stringify(info));
+  },
+
+  // -------------------------------------------------------------
+  // CONSULTORES / ATENDENTES DE ATENDIMENTO
+  // -------------------------------------------------------------
+  getConsultants(): Consultant[] {
+    try {
+      const data = localStorage.getItem(CONSULTANTS_KEY);
+      if (!data) {
+        localStorage.setItem(CONSULTANTS_KEY, JSON.stringify(INITIAL_CONSULTANTS));
+        return INITIAL_CONSULTANTS;
+      }
+      const parsed: Consultant[] = JSON.parse(data);
+      let changed = false;
+      const updated = parsed.map((c) => {
+        if (c.id === 'cons-1' && (!c.imageUrl || c.imageUrl.startsWith('/src/assets/') || c.imageUrl.startsWith('/images/'))) {
+          changed = true;
+          return { ...c, imageUrl: INITIAL_CONSULTANTS[0].imageUrl };
+        }
+        if (c.id === 'cons-2' && (!c.imageUrl || c.imageUrl.startsWith('/src/assets/') || c.imageUrl.startsWith('/images/'))) {
+          changed = true;
+          return { ...c, imageUrl: INITIAL_CONSULTANTS[1].imageUrl };
+        }
+        return c;
+      });
+      if (changed) {
+        localStorage.setItem(CONSULTANTS_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    } catch {
+      return INITIAL_CONSULTANTS;
+    }
+  },
+
+  saveConsultants(consultants: Consultant[]): void {
+    localStorage.setItem(CONSULTANTS_KEY, JSON.stringify(consultants));
+  },
+
+  addConsultant(consultant: Omit<Consultant, 'id'>): Consultant {
+    const current = this.getConsultants();
+    const newConsultant: Consultant = {
+      ...consultant,
+      id: `cons-${Date.now()}`,
+    };
+    const updated = [...current, newConsultant];
+    this.saveConsultants(updated);
+    return newConsultant;
+  },
+
+  updateConsultant(id: string, updates: Partial<Consultant>): Consultant[] {
+    const current = this.getConsultants();
+    const updated = current.map((c) => (c.id === id ? { ...c, ...updates } : c));
+    this.saveConsultants(updated);
+    return updated;
+  },
+
+  deleteConsultant(id: string): Consultant[] {
+    const current = this.getConsultants();
+    const updated = current.filter((c) => c.id !== id);
+    this.saveConsultants(updated);
+    return updated;
+  },
+
+  resetConsultants(): Consultant[] {
+    localStorage.setItem(CONSULTANTS_KEY, JSON.stringify(INITIAL_CONSULTANTS));
+    return INITIAL_CONSULTANTS;
+  },
+
+  // -------------------------------------------------------------
+  // REGISTROS FINANCEIROS & CAIXA
+  // -------------------------------------------------------------
+  getFinancialRecords(): FinancialRecord[] {
+    try {
+      const data = localStorage.getItem(FINANCIAL_KEY);
+      if (!data) return [];
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  },
+
+  saveFinancialRecords(records: FinancialRecord[]): void {
+    localStorage.setItem(FINANCIAL_KEY, JSON.stringify(records));
+  },
+
+  addFinancialRecord(record: Omit<FinancialRecord, 'id' | 'createdAt'>): FinancialRecord {
+    const current = this.getFinancialRecords();
+    const newRecord: FinancialRecord = {
+      ...record,
+      id: `fin-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newRecord, ...current];
+    this.saveFinancialRecords(updated);
+    return newRecord;
+  },
+
+  updateFinancialRecord(id: string, updates: Partial<FinancialRecord>): FinancialRecord[] {
+    const current = this.getFinancialRecords();
+    const updated = current.map((r) => (r.id === id ? { ...r, ...updates } : r));
+    this.saveFinancialRecords(updated);
+    return updated;
+  },
+
+  deleteFinancialRecord(id: string): FinancialRecord[] {
+    const current = this.getFinancialRecords();
+    const updated = current.filter((r) => r.id !== id);
+    this.saveFinancialRecords(updated);
+    return updated;
+  },
+
+  formatOperationType(type: FinancialOperationType): string {
+    switch (type) {
+      case 'recebimento_servico':
+        return 'Recebimento de Serviço';
+      case 'sinal_reserva':
+        return 'Sinal de Reserva';
+      case 'venda_produto':
+        return 'Venda de Produto';
+      case 'taxa_adicional':
+        return 'Taxa Adicional';
+      default:
+        return type;
+    }
   },
 
   // -------------------------------------------------------------
@@ -508,6 +746,7 @@ export const StorageService = {
     changeAmount?: number;
     notes?: string;
     currentLoyaltyPoints?: number;
+    consultantName?: string;
   }): string {
     const [year, month, day] = booking.date.split('-');
     const formattedDate = `${day}/${month}/${year}`;
@@ -528,6 +767,11 @@ export const StorageService = {
     msg += `👤 *DADOS DA CLIENTE:*\n`;
     msg += `• *Nome:* ${booking.clientName}\n`;
     msg += `• *Telefone/WhatsApp:* ${booking.clientPhone}\n\n`;
+
+    if (booking.consultantName) {
+      msg += `👩‍🎨 *CONSULTOR(A) ESCOLHIDO(A):*\n`;
+      msg += `• *Profissional:* ${booking.consultantName}\n\n`;
+    }
 
     msg += `💅 *SERVIÇO ESCOLHIDO:*\n`;
     msg += `• *Arte Artesanal:* ${booking.serviceName}\n`;
@@ -586,5 +830,125 @@ export const StorageService = {
     }
     const encoded = encodeURIComponent(text);
     return `https://wa.me/${cleanPhone}?text=${encoded}`;
-  }
+  },
+
+  // -------------------------------------------------------------
+  // AUTENTICAÇÃO ADMINISTRATIVA
+  // -------------------------------------------------------------
+  isAdminAuthenticated(): boolean {
+    try {
+      const session = sessionStorage.getItem(ADMIN_AUTH_KEY);
+      if (session === 'true') return true;
+      const local = localStorage.getItem(ADMIN_AUTH_KEY);
+      return local === 'true';
+    } catch {
+      return false;
+    }
+  },
+
+  setAdminAuthenticated(auth: boolean, rememberMe = true): void {
+    if (auth) {
+      if (rememberMe) {
+        localStorage.setItem(ADMIN_AUTH_KEY, 'true');
+      }
+      sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+    } else {
+      localStorage.removeItem(ADMIN_AUTH_KEY);
+      sessionStorage.removeItem(ADMIN_AUTH_KEY);
+    }
+  },
+
+  validateAdminLogin(user: string, pass: string): boolean {
+    const cleanUser = user.trim().toLowerCase();
+    // Default admin credentials
+    if ((cleanUser === 'admin@bknails.com' || cleanUser === 'admin') && pass === 'bknails2026') {
+      return true;
+    }
+    // Also check saved credentials if modified in settings
+    try {
+      const custom = localStorage.getItem(ADMIN_USER_KEY);
+      if (custom) {
+        const parsed = JSON.parse(custom);
+        if (parsed.email?.toLowerCase() === cleanUser && parsed.password === pass) {
+          return true;
+        }
+      }
+    } catch {}
+    return false;
+  },
+
+  // -------------------------------------------------------------
+  // REVIEWS & TESTIMONIALS
+  // -------------------------------------------------------------
+  getTestimonials(): Testimonial[] {
+    try {
+      const data = localStorage.getItem(TESTIMONIALS_KEY);
+      if (!data) {
+        localStorage.setItem(TESTIMONIALS_KEY, JSON.stringify(INITIAL_TESTIMONIALS));
+        return INITIAL_TESTIMONIALS;
+      }
+      return JSON.parse(data);
+    } catch {
+      return INITIAL_TESTIMONIALS;
+    }
+  },
+
+  addTestimonial(testimonial: Omit<Testimonial, 'id' | 'date'>): Testimonial {
+    const current = this.getTestimonials();
+    const now = new Date();
+    const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+    const newTestimonial: Testimonial = {
+      ...testimonial,
+      id: `test-${Date.now()}`,
+      date: dateStr,
+    };
+    const updated = [newTestimonial, ...current];
+    localStorage.setItem(TESTIMONIALS_KEY, JSON.stringify(updated));
+    return newTestimonial;
+  },
+
+  getProductReviews(serviceId: string): ProductReview[] {
+    try {
+      const data = localStorage.getItem(REVIEWS_KEY);
+      const all: ProductReview[] = data ? JSON.parse(data) : INITIAL_PRODUCT_REVIEWS;
+      return all.filter((r) => r.serviceId === serviceId);
+    } catch {
+      return INITIAL_PRODUCT_REVIEWS.filter((r) => r.serviceId === serviceId);
+    }
+  },
+
+  addReview(review: Omit<ProductReview, 'id' | 'date'>): ProductReview {
+    try {
+      const data = localStorage.getItem(REVIEWS_KEY);
+      const all: ProductReview[] = data ? JSON.parse(data) : INITIAL_PRODUCT_REVIEWS;
+      const now = new Date();
+      const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+      const newReview: ProductReview = {
+        ...review,
+        id: `rev-${Date.now()}`,
+        date: dateStr,
+      };
+      const updated = [newReview, ...all];
+      localStorage.setItem(REVIEWS_KEY, JSON.stringify(updated));
+      return newReview;
+    } catch {
+      return {
+        ...review,
+        id: `rev-${Date.now()}`,
+        date: 'Hoje',
+      };
+    }
+  },
+
+  getProductRating(serviceId: string): { avg: number; count: number } {
+    const reviews = this.getProductReviews(serviceId);
+    if (reviews.length === 0) {
+      return { avg: 5.0, count: 1 };
+    }
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return {
+      avg: Number((sum / reviews.length).toFixed(1)),
+      count: reviews.length,
+    };
+  },
 };

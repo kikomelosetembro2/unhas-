@@ -1,6 +1,11 @@
 import React from 'react';
 import { Sparkles, MapPin, Phone, MessageCircle, Clock, ShieldCheck, Heart, Award } from 'lucide-react';
 import { SalonInfo } from '../types';
+import {
+  CONSULTANT_BARBARA_IMAGE,
+  CONSULTANT_KARLA_IMAGE,
+  PRODUCT_IMAGES_MAP,
+} from '../data/initialProducts';
 
 interface AboutSalonProps {
   salon: SalonInfo;
@@ -62,6 +67,55 @@ export const AboutSalon: React.FC<AboutSalonProps> = ({ salon, onOpenBooking }) 
         </div>
       </div>
 
+      {/* Consultoras & Designers em Destaque */}
+      <div className="mb-16">
+        <div className="text-center max-w-2xl mx-auto mb-8">
+          <span className="text-xs font-bold uppercase tracking-wider text-pink-600">
+            Nossa Equipe de Consultoras
+          </span>
+          <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-950 mt-1">
+            Conheça as Artistas Responsáveis pelo seu Atendimento
+          </h3>
+          <p className="text-xs sm:text-sm text-stone-500 mt-2">
+            No momento do agendamento, você pode escolher especificamente qual consultora deseja para realizar sua pintura exclusiva.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className="bg-white p-6 rounded-3xl border border-pink-100 shadow-xs flex items-center gap-5 hover:border-pink-300 transition-all">
+            <img
+              src={CONSULTANT_BARBARA_IMAGE}
+              alt="Bárbara Designer"
+              className="w-20 h-20 rounded-2xl object-cover border-2 border-pink-300 shrink-0 shadow-xs"
+            />
+            <div>
+              <h4 className="font-serif text-lg font-bold text-stone-950">Bárbara Designer</h4>
+              <span className="text-xs font-bold text-pink-600 block">Consultora & Nail Designer Sênior</span>
+              <p className="text-xs text-stone-600 mt-1">
+                Especialista em unhas encapsuladas com flores secas naturais, gel ultrabrilho e arte 3D em relevo.
+              </p>
+              <span className="text-[11px] text-stone-400 mt-1 block">Turno: 08:00 às 18:30 (Seg a Sáb)</span>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-pink-100 shadow-xs flex items-center gap-5 hover:border-pink-300 transition-all">
+            <img
+              src={CONSULTANT_KARLA_IMAGE}
+              alt="Karla Designer"
+              className="w-20 h-20 rounded-2xl object-cover border-2 border-pink-300 shrink-0 shadow-xs"
+            />
+            <div>
+              <h4 className="font-serif text-lg font-bold text-stone-950">Karla Designer</h4>
+              <span className="text-xs font-bold text-pink-600 block">Consultora & Nail Designer Artística</span>
+              <p className="text-xs text-stone-600 mt-1">
+                Especialista em francesinha reversa com traços finos milimétricos (pincel 000) e mármore realista.
+              </p>
+              <span className="text-[11px] text-stone-400 mt-1 block">Turno: 08:00 às 18:30 (Seg a Sáb)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Location & Contact Details */}
       <div className="bg-stone-950 text-white rounded-3xl p-8 sm:p-12 border border-stone-800">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -108,8 +162,8 @@ export const AboutSalon: React.FC<AboutSalonProps> = ({ salon, onOpenBooking }) 
 
           <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-stone-800">
             <img
-              src="/src/assets/images/nail_encapsulated_flowers_1793339144938.jpg"
-              alt="Ateliê B & K Nails"
+              src={PRODUCT_IMAGES_MAP['prod-1']}
+              alt="Ateliê B & K Nails - Unha Encapsulada"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />

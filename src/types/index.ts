@@ -11,6 +11,18 @@ export interface NailService {
   featured?: boolean;
 }
 
+export interface Consultant {
+  id: string;
+  name: string;
+  role: string; // e.g. 'Consultora & Nail Designer Sênior'
+  specialty: string; // e.g. 'Encapsuladas, 3D e Pedrarias'
+  phone: string; // e.g. '(68) 98118-0360'
+  imageUrl: string;
+  active: boolean;
+  shiftHours?: string;
+  bio?: string;
+}
+
 export type PaymentMethod = 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito';
 
 export interface Booking {
@@ -29,7 +41,9 @@ export interface Booking {
   changeFor?: number;
   changeAmount?: number;
   status: 'Pendente' | 'Confirmado' | 'Concluído' | 'Cancelado';
-  attendantName?: string; // e.g. 'Bárbara Designer' | 'Karla Designer'
+  consultantId?: string;
+  consultantName?: string; // e.g. 'Bárbara Designer' | 'Karla Designer' | 'Primeiro Consultor Disponível'
+  attendantName?: string;
 }
 
 export type FinancialOperationType = 
@@ -89,4 +103,23 @@ export interface LoyaltyClient {
   rewardsClaimed: number;
   lastVisit: string;
   history: LoyaltyHistoryItem[];
+}
+
+export interface ProductReview {
+  id: string;
+  serviceId: string;
+  clientName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+export interface Testimonial {
+  id: string;
+  clientName: string;
+  clientCity: string;
+  serviceName: string;
+  rating: number;
+  comment: string;
+  date: string;
 }

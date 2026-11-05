@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Sparkles, MapPin, CheckCircle2, Shield, Heart, ArrowDown } from 'lucide-react';
 import { SalonInfo } from '../types';
+import { HERO_IMAGE } from '../data/initialProducts';
 
 interface HeroProps {
   salon: SalonInfo;
@@ -115,7 +116,7 @@ export const Hero: React.FC<HeroProps> = ({ salon, onOpenBooking, onExploreCatal
           <div className="grid grid-cols-1 md:grid-cols-12 items-stretch">
             <div className="md:col-span-8 relative min-h-[300px] sm:min-h-[380px]">
               <img
-                src="/src/assets/images/hero_bk_nails_1793339141928.jpg"
+                src={HERO_IMAGE}
                 alt="B & K Nails Designer - Unhas Artesanais"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -128,7 +129,7 @@ export const Hero: React.FC<HeroProps> = ({ salon, onOpenBooking, onExploreCatal
                   Design & Arte em Unhas
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-200 mt-2 max-w-md leading-relaxed">
-                  Agendamento rápido para o WhatsApp <b>(68) 99282-7744</b> com confirmação automática e cálculo de troco para dinheiro.
+                  Agendamento rápido para o WhatsApp <b>{salon.bookingWhatsapp}</b> com confirmação automática e cálculo de troco para dinheiro.
                 </p>
               </div>
             </div>

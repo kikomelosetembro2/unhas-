@@ -15,9 +15,14 @@ import {
   Sparkles,
   Copy,
   Check,
+  Download,
+  Printer,
+  FileText,
+  UserCheck,
 } from 'lucide-react';
-import { NailService, Booking, PaymentMethod, SalonInfo } from '../types';
+import { NailService, Booking, PaymentMethod, SalonInfo, Consultant } from '../types';
 import { StorageService } from '../services/storage';
+import { PDFService } from '../services/pdfGenerator';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -46,6 +51,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   salon,
   onBookingSuccess,
 }) => {
+  // Consultants state
+  const [consultants, setConsultants] = useState<Consultant[]>(() =>
+    StorageService.getConsultants().filter((c) => c.active)
+  );
+  const [selectedConsultantId, setSelectedConsultantId] = useState<string>(() => {
+    const list = StorageService.getConsultants().filter((c) => c.active);
+    return list[0]?.id || '';
+  });
+
   // Step 1: Service selection
   const [currentServiceId, setCurrentServiceId] = useState<string>(
     selectedService?.id || allServices[0]?.id || ''
@@ -74,6 +88,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [generatedReceiptText, setGeneratedReceiptText] = useState<string>('');
   const [receiptCopied, setReceiptCopied] = useState<boolean>(false);
   const [formError, setFormError] = useState<string>('');
+  const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false);
+
+  // Refresh consultants when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const activeCons = StorageService.getConsultants().filter((c) => c.active);
+      setConsultants(activeCons);
+      if (!selectedConsultantId && activeCons.length > 0) {
+        setSelectedConsultantId(activeCons[0].id);
+      }
+    }
+  }, [isOpen]);
 
   // Sync service if selectedService changes
   useEffect(() => {
@@ -83,6 +109,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCurrentStep(2);
     }
   }, [selectedService]);
+
+  const chosenConsultant = useMemo(() => {
+    return consultants.find((c) => c.id === selectedConsultantId) || consultants[0];
+  }, [consultants, selectedConsultantId]);
 
   const activeService = useMemo(() => {
     return allServices.find((s) => s.id === currentServiceId) || allServices[0];
@@ -149,7 +179,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       }
     }
 
-    // Save booking in store
+    // Save booking in store with chosen consultant
     const newBooking = StorageService.addBooking({
       clientName: clientName.trim(),
       clientPhone,
@@ -163,6 +193,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       needChange: paymentMethod === 'dinheiro' ? needChange : undefined,
       changeFor: paymentMethod === 'dinheiro' && needChange ? changeForNumber : undefined,
       changeAmount: paymentMethod === 'dinheiro' && needChange ? changeToReturn : undefined,
+      consultantId: chosenConsultant?.id,
+      consultantName: chosenConsultant?.name,
+      attendantName: chosenConsultant?.name,
     });
 
     // Generate official formatted receipt message
@@ -179,6 +212,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       changeFor: paymentMethod === 'dinheiro' && needChange ? changeForNumber : undefined,
       changeAmount: paymentMethod === 'dinheiro' && needChange ? changeToReturn : undefined,
       notes,
+      consultantName: chosenConsultant?.name,
     });
 
     // Always direct to WhatsApp (68) 99282-7744
@@ -191,6 +225,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     // Open WhatsApp immediately with receipt to (68) 99282-7744
     window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDownloadPDF = () => {
+    if (!createdBooking) return;
+    PDFService.downloadBookingPDF(createdBooking, salon, chosenConsultant);
+    setPdfDownloaded(true);
+  };
+
+  const handleOpenPDF = () => {
+    if (!createdBooking) return;
+    PDFService.openBookingPDF(createdBooking, salon, chosenConsultant);
   };
 
   const handleCopyReceiptText = () => {
@@ -243,7 +288,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 currentStep === 2 ? 'text-pink-600 font-bold' : ''
               }`}
             >
-              2. Data & Hora
+              2. Consultora & Data
             </span>
             <span>→</span>
             <span
@@ -289,7 +334,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   Agendamento Confirmado!
                 </h3>
                 <p className="text-xs text-stone-600 mt-1 max-w-sm mx-auto">
-                  O comprovante oficial com todos os detalhes foi gerado e enviado diretamente para a designer no WhatsApp <b>(68) 99282-7744</b>.
+                  Seu agendamento foi registrado com sucesso. Você pode baixar seu <b>comprovante oficial em PDF</b> abaixo.
                 </p>
               </div>
 
@@ -316,6 +361,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <span className="font-mono text-stone-800">
                     {createdBooking.clientPhone}
                   </span>
+                </div>
+
+                {/* Consultant Display */}
+                <div className="flex justify-between items-center py-1 bg-pink-50/60 px-2.5 rounded-lg border border-pink-100">
+                  <span className="text-stone-600 font-semibold flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-pink-600" />
+                    Consultora Escolhida:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {chosenConsultant?.imageUrl && (
+                      <img
+                        src={chosenConsultant.imageUrl}
+                        alt={chosenConsultant.name}
+                        className="w-5 h-5 rounded-full object-cover border border-pink-300"
+                      />
+                    )}
+                    <span className="font-bold text-pink-700">
+                      {createdBooking.consultantName || chosenConsultant?.name}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex justify-between">
@@ -363,27 +428,53 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons: PDF Download & WhatsApp */}
               <div className="space-y-2 pt-1">
+                {/* PDF Primary Download Button */}
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-stone-950 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all border border-stone-800 active:scale-95"
+                >
+                  <Download className="w-4 h-4 text-pink-400" />
+                  <span>
+                    {pdfDownloaded
+                      ? '✓ Comprovante PDF Baixado (Clique para baixar novamente)'
+                      : 'Baixar Comprovante em PDF'}
+                  </span>
+                </button>
+
+                {/* Print/View PDF */}
+                <button
+                  type="button"
+                  onClick={handleOpenPDF}
+                  className="w-full py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-pink-200"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Visualizar / Imprimir PDF</span>
+                </button>
+
+                {/* Reopen WhatsApp */}
                 <a
                   href={generatedWhatsAppUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Reabrir WhatsApp (68) 99282-7744</span>
                 </a>
 
+                {/* Copy Text */}
                 <button
                   type="button"
                   onClick={handleCopyReceiptText}
-                  className="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-stone-200"
+                  className="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors border border-stone-200"
                 >
                   {receiptCopied ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span className="text-emerald-700">Comprovante Copiado com Sucesso!</span>
+                      <span className="text-emerald-700">Texto Copiado com Sucesso!</span>
                     </>
                   ) : (
                     <>
@@ -455,15 +546,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               )}
 
-              {/* STEP 2: Date & Time */}
+              {/* STEP 2: Consultant, Date & Time */}
               {currentStep === 2 && (
                 <div className="space-y-5">
                   <div>
                     <h4 className="font-serif text-lg font-bold text-stone-900">
-                      Data e Horário do Atendimento
+                      Consultora, Data e Horário
                     </h4>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      Atendimento exclusivo no ateliê em Rio Branco - AC.
+                      Escolha a profissional que fará sua arte e o horário desejado.
                     </p>
                   </div>
 
@@ -476,6 +567,62 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <span className="font-bold text-pink-600">
                       R$ {activeService.price.toFixed(2).replace('.', ',')}
                     </span>
+                  </div>
+
+                  {/* Consultant Picker (Opção de Atendimento de Dois Consultores) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-2 flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-pink-600" />
+                      Escolha a Consultora / Designer para seu Atendimento:
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {consultants.map((c) => {
+                        const isSelected = selectedConsultantId === c.id;
+                        return (
+                          <div
+                            key={c.id}
+                            onClick={() => setSelectedConsultantId(c.id)}
+                            className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 relative ${
+                              isSelected
+                                ? 'border-pink-600 bg-pink-50/70 ring-2 ring-pink-500/25 shadow-xs'
+                                : 'border-stone-200 bg-white hover:border-pink-300 hover:bg-stone-50/50'
+                            }`}
+                          >
+                            <img
+                              src={c.imageUrl}
+                              alt={c.name}
+                              className={`w-12 h-12 rounded-xl object-cover shrink-0 border ${
+                                isSelected ? 'border-pink-500 ring-2 ring-pink-200' : 'border-stone-200'
+                              }`}
+                            />
+                            <div className="flex-1 min-w-0 pr-4">
+                              <div className="flex items-center gap-1.5">
+                                <h5 className="font-bold text-xs text-stone-900 truncate">
+                                  {c.name}
+                                </h5>
+                                {isSelected && (
+                                  <span className="w-4 h-4 rounded-full bg-pink-600 text-white flex items-center justify-center shrink-0">
+                                    <Check className="w-2.5 h-2.5" />
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-semibold text-pink-700 block mt-0.5">
+                                {c.role}
+                              </span>
+                              <p className="text-[10px] text-stone-500 line-clamp-2 mt-0.5 leading-tight">
+                                {c.specialty}
+                              </p>
+                              {c.shiftHours && (
+                                <span className="text-[9px] text-stone-400 mt-1 block">
+                                  Turno: {c.shiftHours}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Date picker */}
