@@ -43,6 +43,7 @@ import {
 import { NailService, Booking, SalonInfo, LoyaltyClient, Consultant } from '../types';
 import { StorageService } from '../services/storage';
 import { PDFService } from '../services/pdfGenerator';
+import { ReceiptImageService } from '../services/receiptImageGenerator';
 import {
   HERO_IMAGE,
   CONSULTANT_BARBARA_IMAGE,
@@ -463,6 +464,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     showToast(`Comprovante PDF #${booking.id} baixado com sucesso!`);
   };
 
+  const handleDownloadBookingJpg = async (booking: Booking) => {
+    const matchedCons =
+      consultants.find(
+        (c) =>
+          c.id === booking.consultantId ||
+          c.name === booking.consultantName ||
+          c.name === booking.attendantName
+      ) || consultants[0];
+    await ReceiptImageService.downloadBookingJpg(booking, salon, matchedCons);
+    showToast(`Comprovante em arquivo .JPG #${booking.id} baixado com sucesso!`);
+  };
+
   const handleOpenBookingPDF = (booking: Booking) => {
     const matchedCons =
       consultants.find(
@@ -489,7 +502,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  // WhatsApp to Salon (Comprovante Oficial para 68 99282-7744)
+  // WhatsApp to Salon (Comprovante Oficial para 68 98118-0360)
   const handleForwardToSalonWhatsApp = (booking: Booking) => {
     const msg = StorageService.generateWhatsAppMessage({
       id: booking.id,
@@ -504,10 +517,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       changeFor: booking.changeFor,
       changeAmount: booking.changeAmount,
       notes: booking.notes,
+      consultantName: booking.consultantName || booking.attendantName,
     });
-    const url = StorageService.buildWhatsAppLink('5568992827744', msg);
+    const targetPhone = salon.rawWhatsappNumber || '5568981180360';
+    const url = StorageService.buildWhatsAppLink(targetPhone, msg);
     window.open(url, '_blank');
-    showToast('Comprovante aberto para envio ao WhatsApp (68) 99282-7744!');
+    showToast(`Comprovante aberto para envio ao WhatsApp ${salon.bookingWhatsapp}!`);
   };
 
   // WhatsApp to Client
@@ -735,7 +750,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const clean = client.phone.startsWith('55') ? client.phone : `55${client.phone}`;
     let text = '';
     if (client.points >= 5) {
-      text = `🎉 Parabéns, ${client.name}! Você completou *5 atendimentos* no *B & K NAILS DESIGNER* e seu *Cartão Fidelidade* está com a recompensa liberada! Agende seu horário pelo WhatsApp (68) 99282-7744 e venha resgatar seu prêmio de cortesia! 💅✨`;
+      text = `🎉 Parabéns, ${client.name}! Você completou *5 atendimentos* no *B & K NAILS DESIGNER* e seu *Cartão Fidelidade* está com a recompensa liberada! Agende seu horário pelo WhatsApp (68) 98118-0360 e venha resgatar seu prêmio de cortesia! 💅✨`;
     } else {
       text = `Olá, ${client.name}! Seu saldo no *Cartão Fidelidade B & K Nails* é de *${client.points}/5 pontos*. Faltam apenas *${5 - client.points} atendimento(s)* para você ganhar sua recompensa exclusiva! Te esperamos em breve em Rio Branco. 💖`;
     }
@@ -2181,6 +2196,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* Baixar JPG do Comprovante (Preferencial) */}
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadBookingJpg(b)}
+                                className="p-1.5 rounded-lg bg-pink-600 text-white hover:bg-pink-700 transition-colors shadow-2xs"
+                                title="Baixar Comprovante Oficial em Imagem .JPG (Preferencial)"
+                              >
+                                <ImageIcon className="w-4 h-4 text-white" />
+                              </button>
+
                               {/* Baixar PDF do Comprovante */}
                               <button
                                 type="button"
@@ -2196,7 +2221,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 type="button"
                                 onClick={() => handleOpenBookingPDF(b)}
                                 className="p-1.5 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-600 hover:text-white transition-colors"
-                                title="Visualizar e Imprimir Comprovante PDF"
+                                title="Visualizar e Imprimir Comprovante"
                               >
                                 <Printer className="w-4 h-4" />
                               </button>
@@ -2228,7 +2253,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 type="button"
                                 onClick={() => handleForwardToSalonWhatsApp(b)}
                                 className="p-1.5 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-600 hover:text-white transition-colors"
-                                title="Reencaminhar para o WhatsApp do Salão (68) 99282-7744"
+                                title="Reencaminhar para o WhatsApp do Salão (68) 98118-0360"
                               >
                                 <Share2 className="w-4 h-4" />
                               </button>
@@ -2419,7 +2444,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:border-pink-500 outline-hidden font-mono font-semibold"
               />
               <span className="text-[11px] text-stone-400 mt-1 block">
-                Padrão informado: (68) 99282-7744
+                Padrão informado: (68) 98118-0360
               </span>
             </div>
 

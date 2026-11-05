@@ -18,7 +18,7 @@ import {
 
 const PRODUCTS_KEY = 'bk_nails_products_v3';
 const BOOKINGS_KEY = 'bk_nails_bookings_v2';
-const SALON_KEY = 'bk_nails_salon_v1';
+const SALON_KEY = 'bk_nails_salon_v2';
 const LOYALTY_KEY = 'bk_nails_loyalty_v1';
 const CONSULTANTS_KEY = 'bk_nails_consultants_v2';
 const FINANCIAL_KEY = 'bk_nails_financial_v1';
@@ -393,7 +393,19 @@ export const StorageService = {
         localStorage.setItem(SALON_KEY, JSON.stringify(SALON_DATA));
         return SALON_DATA;
       }
-      return JSON.parse(data);
+      const parsed: SalonInfo = JSON.parse(data);
+      if (
+        !parsed.bookingWhatsapp ||
+        parsed.bookingWhatsapp.includes('99282') ||
+        parsed.rawWhatsappNumber?.includes('99282')
+      ) {
+        parsed.bookingWhatsapp = '(68) 98118-0360';
+        parsed.rawWhatsappNumber = '5568981180360';
+        parsed.pixKey = '68981180360';
+        parsed.phones = ['(68) 98118-0360', '(68) 98114-2626'];
+        localStorage.setItem(SALON_KEY, JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {
       return SALON_DATA;
     }
@@ -800,8 +812,8 @@ export const StorageService = {
 
     msg += `\n--------------------------------------\n`;
     msg += `📍 *Ateliê:* Rio Branco - Acre\n`;
-    msg += `📲 *WhatsApp de Agendamentos:* (68) 99282-7744\n`;
-    msg += `✅ _Comprovante enviado automaticamente para confirmação da designer._`;
+    msg += `📲 *WhatsApp de Agendamentos:* (68) 98118-0360\n`;
+    msg += `🖼️ _Comprovante oficial em arquivo .JPG / PDF gerado com sucesso._`;
 
     return msg;
   },

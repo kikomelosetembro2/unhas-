@@ -221,15 +221,16 @@ export const LoyaltyDashboard: React.FC<LoyaltyDashboardProps> = ({ salon, onOpe
               </button>
 
               <a
-                href={`https://wa.me/${salon.rawWhatsappNumber}?text=${encodeURIComponent(
-                  `Olá! Gostaria de consultar e agendar meu atendimento no Programa Fidelidade B & K Nails. Meu nome é ${selectedClient.name} (${selectedClient.formattedPhone}). Saldo: ${selectedClient.points}/5 pontos.`
+                href={`https://wa.me/${salon.rawWhatsappNumber || '5568981180360'}?text=${encodeURIComponent(
+                  `Olá! Gostaria de consultar e agendar meu atendimento no Programa Fidelidade BK NAILS DESIGN (Studio B&K Nails). Meu nome é ${selectedClient.name} (${selectedClient.formattedPhone}). Saldo: ${selectedClient.points}/5 pontos.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+                title="WhatsApp BK NAILS DESIGN (Studio B&K Nails): (68) 98118-0360"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>Falar com a Designer</span>
+                <span>WhatsApp (68) 98118-0360</span>
               </a>
             </div>
           </div>

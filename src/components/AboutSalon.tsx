@@ -141,7 +141,7 @@ export const AboutSalon: React.FC<AboutSalonProps> = ({ salon, onOpenBooking }) 
               </div>
               <div className="flex items-center gap-3">
                 <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>WhatsApp de Agendamentos: <b>{salon.bookingWhatsapp}</b></span>
+                <span>WhatsApp BK NAILS DESIGN (Studio B&K Nails): <b>{salon.bookingWhatsapp}</b></span>
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-pink-400 shrink-0" />

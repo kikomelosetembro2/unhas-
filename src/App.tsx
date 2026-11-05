@@ -292,16 +292,19 @@ export default function App() {
 
           {/* Direct WhatsApp button */}
           <a
-            href={`https://wa.me/${salon.rawWhatsappNumber}?text=${encodeURIComponent(
-              'Olá! Gostaria de informações e agendar uma pintura artesanal na B & K Nails Designer.'
+            href={`https://wa.me/5568981180360?text=${encodeURIComponent(
+              'Olá! Gostaria de informações e agendar uma pintura artesanal no BK NAILS DESIGN (Studio B&K Nails).'
             )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 hover:scale-105 transition-all"
-            title="Abrir WhatsApp B & K Nails Designer"
+            className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2.5 hover:scale-105 transition-all border border-emerald-500/40"
+            title="WhatsApp do BK NAILS DESIGN (Studio B&K Nails): (68) 98118-0360"
           >
-            <MessageCircle className="w-5 h-5 fill-white text-emerald-600" />
-            <span>Falar no WhatsApp</span>
+            <MessageCircle className="w-5 h-5 fill-white text-emerald-600 shrink-0" />
+            <div className="flex flex-col text-left leading-tight">
+              <span className="text-[10px] uppercase font-bold text-emerald-100 tracking-wider">BK NAILS DESIGN</span>
+              <span className="text-xs sm:text-sm font-black text-white">(68) 98118-0360</span>
+            </div>
           </a>
         </aside>
       )}

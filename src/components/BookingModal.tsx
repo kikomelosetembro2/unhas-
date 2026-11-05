@@ -19,10 +19,12 @@ import {
   Printer,
   FileText,
   UserCheck,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { NailService, Booking, PaymentMethod, SalonInfo, Consultant } from '../types';
 import { StorageService } from '../services/storage';
 import { PDFService } from '../services/pdfGenerator';
+import { ReceiptImageService } from '../services/receiptImageGenerator';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -89,6 +91,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [receiptCopied, setReceiptCopied] = useState<boolean>(false);
   const [formError, setFormError] = useState<string>('');
   const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false);
+  const [jpgDownloaded, setJpgDownloaded] = useState<boolean>(false);
+  const [isGeneratingJpg, setIsGeneratingJpg] = useState<boolean>(false);
 
   // Refresh consultants when modal opens
   useEffect(() => {
@@ -215,16 +219,30 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       consultantName: chosenConsultant?.name,
     });
 
-    // Always direct to WhatsApp (68) 99282-7744
-    const waUrl = StorageService.buildWhatsAppLink('5568992827744', waMessage);
+    // Always direct to the official WhatsApp: (68) 98118-0360
+    const targetWhatsapp = salon.rawWhatsappNumber || '5568981180360';
+    const waUrl = StorageService.buildWhatsAppLink(targetWhatsapp, waMessage);
 
     setCreatedBooking(newBooking);
     setGeneratedWhatsAppUrl(waUrl);
     setGeneratedReceiptText(waMessage);
     onBookingSuccess(newBooking);
 
-    // Open WhatsApp immediately with receipt to (68) 99282-7744
+    // Open WhatsApp immediately with receipt to (68) 98118-0360
     window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDownloadJPG = async () => {
+    if (!createdBooking) return;
+    setIsGeneratingJpg(true);
+    try {
+      await ReceiptImageService.downloadBookingJpg(createdBooking, salon, chosenConsultant);
+      setJpgDownloaded(true);
+    } catch (err) {
+      console.error('Erro ao gerar comprovante JPG:', err);
+    } finally {
+      setIsGeneratingJpg(false);
+    }
   };
 
   const handleDownloadPDF = () => {
@@ -328,13 +346,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                  <Check className="w-3.5 h-3.5" /> Comprovante Enviado para WhatsApp (68) 99282-7744
+                  <Check className="w-3.5 h-3.5" /> Comprovante Enviado para WhatsApp {salon.bookingWhatsapp}
                 </span>
                 <h3 className="font-serif text-2xl font-bold text-stone-950 mt-2">
                   Agendamento Confirmado!
                 </h3>
                 <p className="text-xs text-stone-600 mt-1 max-w-sm mx-auto">
-                  Seu agendamento foi registrado com sucesso. Você pode baixar seu <b>comprovante oficial em PDF</b> abaixo.
+                  Seu agendamento foi registrado com sucesso. Você pode salvar seu <b>comprovante em arquivo .JPG (de preferência)</b> ou em <b>PDF</b> abaixo.
                 </p>
               </div>
 
@@ -423,18 +441,35 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-stone-100 text-[10px] text-stone-400 text-center">
-                  B & K NAILS DESIGNER · Rio Branco - AC · WhatsApp: (68) 99282-7744
+                <div className="pt-2 border-t border-stone-100 text-[10px] text-stone-400 text-center font-medium">
+                  BK NAILS DESIGN (Studio B&K Nails) · Rio Branco - AC · WhatsApp: {salon.bookingWhatsapp}
                 </div>
               </div>
 
-              {/* Action Buttons: PDF Download & WhatsApp */}
+              {/* Action Buttons: JPG, PDF Download & WhatsApp */}
               <div className="space-y-2 pt-1">
+                {/* JPG Preferred Download Button */}
+                <button
+                  type="button"
+                  onClick={handleDownloadJPG}
+                  disabled={isGeneratingJpg}
+                  className="w-full py-3.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-75"
+                >
+                  <ImageIcon className="w-4 h-4 text-white" />
+                  <span>
+                    {isGeneratingJpg
+                      ? 'Gerando Imagem .JPG...'
+                      : jpgDownloaded
+                      ? '✓ Comprovante .JPG Salvo (Baixar novamente)'
+                      : 'Baixar Comprovante em Imagem (.JPG) · Recomendado'}
+                  </span>
+                </button>
+
                 {/* PDF Primary Download Button */}
                 <button
                   type="button"
                   onClick={handleDownloadPDF}
-                  className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-stone-950 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all border border-stone-800 active:scale-95"
+                  className="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-950 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all border border-stone-800 active:scale-95"
                 >
                   <Download className="w-4 h-4 text-pink-400" />
                   <span>
@@ -448,10 +483,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenPDF}
-                  className="w-full py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-pink-200"
+                  className="w-full py-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-stone-200"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Visualizar / Imprimir PDF</span>
+                  <span>Visualizar / Imprimir Comprovante</span>
                 </button>
 
                 {/* Reopen WhatsApp */}
@@ -462,7 +497,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  <span>Reabrir WhatsApp (68) 99282-7744</span>
+                  <span>Reabrir WhatsApp BK NAILS DESIGN ({salon.bookingWhatsapp})</span>
                 </a>
 
                 {/* Copy Text */}
@@ -704,7 +739,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </label>
                     <input
                       type="tel"
-                      placeholder="(68) 99282-XXXX"
+                      placeholder="(68) 98118-XXXX"
                       value={clientPhone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-hidden placeholder:text-stone-400 font-mono"

@@ -39,13 +39,14 @@ export const Footer: React.FC<FooterProps> = ({ salon, onOpenBooking, onOpenAdmi
             </h4>
             <div className="space-y-2 text-stone-300">
               <a
-                href={`https://wa.me/${salon.rawWhatsappNumber}`}
+                href={`https://wa.me/${salon.rawWhatsappNumber || '5568981180360'}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 hover:text-emerald-400 transition-colors"
+                title="WhatsApp BK NAILS DESIGN (Studio B&K Nails): (68) 98118-0360"
               >
                 <MessageCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span>WhatsApp Agendamentos: <b>{salon.bookingWhatsapp}</b></span>
+                <span>WhatsApp BK NAILS DESIGN: <b>{salon.bookingWhatsapp}</b></span>
               </a>
               {salon.phones.filter(p => p && p !== salon.bookingWhatsapp).map((phone, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-stone-400">

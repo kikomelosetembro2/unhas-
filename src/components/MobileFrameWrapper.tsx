@@ -133,10 +133,11 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({
             </button>
 
             <a
-              href={`https://wa.me/${whatsappNumber}`}
+              href={`https://wa.me/${whatsappNumber || '5568981180360'}?text=${encodeURIComponent('Olá! Gostaria de falar com o BK NAILS DESIGN (Studio B&K Nails) sobre agendamento.')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-1 min-w-[50px] text-emerald-600 hover:text-emerald-700 transition-colors"
+              title="WhatsApp BK NAILS DESIGN (Studio B&K Nails): (68) 98118-0360"
             >
               <MessageCircle className="w-5 h-5" />
               <span className="text-[10px] font-semibold">WhatsApp</span>

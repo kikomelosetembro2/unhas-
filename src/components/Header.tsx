@@ -148,13 +148,14 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
           <a
-            href={`https://wa.me/${salon.rawWhatsappNumber}?text=${encodeURIComponent('Olá! Gostaria de tirar dúvidas sobre as pinturas artesanais da B & K Nails.')}`}
+            href={`https://wa.me/${salon.rawWhatsappNumber || '5568981180360'}?text=${encodeURIComponent('Olá! Gostaria de falar com o BK NAILS DESIGN (Studio B&K Nails) sobre as pinturas artesanais.')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-stone-700 hover:text-pink-600 flex items-center gap-1 transition-colors"
+            className="text-stone-700 hover:text-pink-600 flex items-center gap-1.5 transition-colors font-medium"
+            title="WhatsApp do BK NAILS DESIGN (Studio B&K Nails): (68) 98118-0360"
           >
             <MessageCircle className="w-4 h-4 text-emerald-600" />
-            WhatsApp Salão
+            <span>WhatsApp (68) 98118-0360</span>
           </a>
         </nav>
 
